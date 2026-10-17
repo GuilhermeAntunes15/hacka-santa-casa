@@ -1,0 +1,474 @@
+import { useEffect, useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import type { ThreeEvent } from '@react-three/fiber'
+import { Edges, RoundedBox } from '@react-three/drei'
+import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
+import { useSimulationStore } from '../../store/simulationStore'
+import { LEAK_CHAMBER, N_UPPER, REF, currentActiveGroup, groupOf } from '../../lib/simulationEngine'
+import type { FaultType, Group, LayerId } from '../../lib/simulationEngine'
+
+export type Variant = 'hero' | 'simulator' | 'explorer'
+
+const LOOK = {
+  base: '#1A2130',
+  tilt: '#1D4ED8',
+  foam: '#9AA6B4',
+  rail: '#C9CED6',
+  chamber: '#86A6CC',
+  chamberOpacity: 0.85,
+  groupA: '#7CC4FF',
+  groupB: '#3B82F6',
+  tube: '#9FB3C8',
+  hose: '#3A4250',
+  sensor: '#FACC15',
+  controller: '#E8ECF2',
+  screen: '#0F1B2D',
+  ledOk: '#21C58E',
+  ledFault: '#EF4444',
+  cover: '#1B2A4A',
+  load: '#9CCFD8',
+  loadEdge: '#D8F6FB',
+  loadOpacity: 0.4,
+  accent: '#23D5E7',
+  danger: '#EF4444',
+  dimOpacity: 0.3,
+  activePulse: 0.35,
+  faultPulse: 0.9,
+  selectedEmissive: 0.45,
+}
+
+const BASE_TOP = 0.07
+const H0 = 0.1
+const TILT_LIFT = 0.45
+const TILT_Z = 0.225
+const TILT_RZ = 0.2
+const TILT_LEN = 1.9
+const FOAM_TOP = 0.09
+const CELL_R = 0.062
+const CELL_SPAN = 0.72
+const RAIL_H = 0.2
+const RAIL_W = 0.08
+const RAIL_Z = 0.44 - RAIL_W / 2
+const PITCH = 0.12
+const LINE_Y = 0.08
+const LINE_A_Z = -0.47
+const LINE_B_Z = -0.51
+const COVER_TOP = 0.23
+const CTRL_POS = new THREE.Vector3(1.42, 0, 0)
+const CTRL_YAW = 0.55
+
+const chamberX = (i: number) => (i - (N_UPPER - 1) / 2) * PITCH
+const cellRy = (u: number) => CELL_R * Math.max(u, 0.05)
+const cellSx = (u: number) => Math.min(1, 0.55 + 0.45 * Math.max(u, 0.05))
+
+type LayerKey = LayerId | 'base'
+
+const INTRO_ORDER: LayerKey[] = ['base', 'tiltChambers', 'foam', 'pneumatic', 'topChambers', 'sensors', 'controller', 'cover']
+
+const EXPLODE: Partial<Record<LayerKey, [number, number, number]>> = {
+  tiltChambers: [0, 0.25, 0],
+  foam: [0, 0.5, 0],
+  topChambers: [0, 0.8, 0],
+  sensors: [0, 0.95, 0],
+  cover: [0, 1.15, 0],
+  pneumatic: [0, 0, -0.35],
+  controller: [0.25, 0, 0],
+}
+
+const LOADS = [
+  { x: -0.82, size: [0.2, 0.1, 0.26] as const },
+  { x: -0.42, size: [0.3, 0.12, 0.5] as const },
+  { x: 0, size: [0.36, 0.14, 0.44] as const },
+  { x: 0.82, size: [0.22, 0.08, 0.34] as const },
+]
+
+const easeOutCubic = (x: number) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3
+
+const REF_UPPER: number[] = Array<number>(N_UPPER).fill(REF)
+
+const FAULT_LAYER: Record<FaultType, LayerId> = {
+  leak: 'topChambers',
+  overpressure: 'pneumatic',
+  pump: 'controller',
+  sensor: 'sensors',
+}
+
+interface MattressModelProps {
+  variant: Variant
+  reducedMotion: boolean
+  selectedLayer: LayerId | null
+  onSelectLayer?: (id: LayerId) => void
+  exploded: boolean
+}
+
+function makeMaterials(variant: Variant) {
+  const transparent = variant === 'explorer'
+  const std = (color: string, opts: THREE.MeshStandardMaterialParameters = {}) =>
+    new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.05, transparent, ...opts })
+  const chambers = Array.from(
+    { length: N_UPPER },
+    () =>
+      new THREE.MeshPhysicalMaterial({
+        color: LOOK.chamber,
+        roughness: 0.35,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.25,
+        transparent: true,
+        opacity: LOOK.chamberOpacity,
+        depthWrite: true,
+      }),
+  )
+  chambers.forEach((m) => (m.userData.baseOpacity = LOOK.chamberOpacity))
+  const mat = new THREE.MeshBasicMaterial({ color: LOOK.sensor, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false })
+  mat.userData.baseOpacity = 0.35
+  return {
+    base: std(LOOK.base, { roughness: 0.55, metalness: 0.3 }),
+    tilt: std(LOOK.tilt, { roughness: 0.35 }),
+    foam: std(LOOK.foam, { roughness: 0.95 }),
+    rail: std(LOOK.rail, { roughness: 0.9, metalness: 0 }),
+    chambers,
+    tube: std(LOOK.tube, { roughness: 0.3, metalness: 0.25 }),
+    hose: std(LOOK.hose, { roughness: 0.5, metalness: 0.3 }),
+    sensor: std(LOOK.sensor, { roughness: 0.4 }),
+    mat,
+    controller: std(LOOK.controller, { roughness: 0.45, metalness: 0.05 }),
+    screen: new THREE.MeshBasicMaterial({ color: LOOK.screen, transparent }),
+    led: new THREE.MeshBasicMaterial({ color: LOOK.ledOk, transparent }),
+    cover: std(LOOK.cover, { roughness: 0.7, side: THREE.DoubleSide }),
+    load: std(LOOK.load, { transparent: true, opacity: LOOK.loadOpacity, depthWrite: false, roughness: 0.5 }),
+  }
+}
+
+type Materials = ReturnType<typeof makeMaterials>
+
+const layerMaterials = (m: Materials): Record<LayerKey, THREE.Material[]> => ({
+  base: [m.base],
+  tiltChambers: [m.tilt],
+  foam: [m.foam, m.rail],
+  topChambers: m.chambers,
+  pneumatic: [m.tube],
+  sensors: [m.sensor, m.mat],
+  controller: [m.controller, m.screen, m.led, m.hose],
+  cover: [m.cover],
+})
+
+const C = {
+  chamber: new THREE.Color(LOOK.chamber),
+  a: new THREE.Color(LOOK.groupA),
+  b: new THREE.Color(LOOK.groupB),
+  accent: new THREE.Color(LOOK.accent),
+  danger: new THREE.Color(LOOK.danger),
+  black: new THREE.Color('#000000'),
+  ledOk: new THREE.Color(LOOK.ledOk),
+  ledFault: new THREE.Color(LOOK.ledFault),
+}
+
+function setEmissive(m: THREE.Material, color: THREE.Color, intensity: number) {
+  if (m instanceof THREE.MeshStandardMaterial) {
+    m.emissive.copy(intensity > 0 ? color : C.black)
+    m.emissiveIntensity = intensity
+  }
+}
+
+const ctrlLocal = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), CTRL_YAW).add(CTRL_POS)
+
+function hoseCurve(k: number) {
+  const port = ctrlLocal(-0.15, 0.07, k === 0 ? 0.04 : -0.04)
+  const out = ctrlLocal(-0.28, 0.03, k === 0 ? 0.04 : -0.04)
+  const z = 0.26 - 0.08 * k
+  return new THREE.CatmullRomCurve3([new THREE.Vector3(1.0, 0.13, z), new THREE.Vector3(1.08, 0.03, z), out, port])
+}
+
+function lineCurve(z: number, footX: number) {
+  return new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.96, LINE_Y, z),
+    new THREE.Vector3(0.82, LINE_Y, z),
+    new THREE.Vector3(footX, -0.02, z + 0.08),
+    new THREE.Vector3(footX, -0.03, 0.1),
+    new THREE.Vector3(footX + 0.03, -0.04, 0.3),
+  ])
+}
+
+export default function MattressModel({ variant, reducedMotion, selectedLayer, onSelectLayer, exploded }: MattressModelProps) {
+  const mats = useMemo(() => makeMaterials(variant), [variant])
+  const byLayer = useMemo(() => layerMaterials(mats), [mats])
+
+  const geo = useMemo(() => {
+    const cell = new THREE.CapsuleGeometry(CELL_R, CELL_SPAN - 2 * CELL_R, 6, 20).rotateX(Math.PI / 2)
+    const tilt = new THREE.CylinderGeometry(1, 1, TILT_LEN, 40).rotateZ(Math.PI / 2)
+    const branchParts = Array.from({ length: N_UPPER }, (_, i) => {
+      const z = groupOf(i) === 'A' ? LINE_A_Z : LINE_B_Z
+      const len = Math.abs(z) - CELL_SPAN / 2
+      return new THREE.CylinderGeometry(0.007, 0.007, len, 6).rotateX(Math.PI / 2).translate(chamberX(i), LINE_Y, z + len / 2)
+    })
+    const branches = mergeGeometries(branchParts)
+    branchParts.forEach((g) => g.dispose())
+    return {
+      cell,
+      tilt,
+      lineA: new THREE.TubeGeometry(lineCurve(LINE_A_Z, 0.95), 64, 0.012, 8, false),
+      lineB: new THREE.TubeGeometry(lineCurve(LINE_B_Z, 0.98), 64, 0.012, 8, false),
+      branches,
+      hose0: new THREE.TubeGeometry(hoseCurve(0), 48, 0.012, 8, false),
+      hose1: new THREE.TubeGeometry(hoseCurve(1), 48, 0.012, 8, false),
+      puck: new THREE.CylinderGeometry(0.028, 0.028, 0.03, 16),
+    }
+  }, [])
+
+  useEffect(
+    () => () => {
+      Object.values(geo).forEach((g) => g.dispose())
+      Object.values(byLayer)
+        .flat()
+        .forEach((m) => m.dispose())
+      mats.load.dispose()
+    },
+    [geo, byLayer, mats],
+  )
+
+  useEffect(() => () => void (document.body.style.cursor = ''), [])
+
+  const root = useRef<THREE.Group>(null)
+  const pivot = useRef<THREE.Group>(null)
+  const platform = useRef<THREE.Group>(null)
+  const tiltL = useRef<THREE.Mesh>(null)
+  const tiltR = useRef<THREE.Mesh>(null)
+  const chambers = useRef<(THREE.Mesh | null)[]>([])
+  const loads = useRef<(THREE.Mesh | null)[]>([])
+  const groups = useRef<Partial<Record<LayerKey, THREE.Group>>>({})
+  const t0 = useRef(-1)
+  const explode = useRef(exploded ? 1 : 0)
+
+  const setGroup = (k: LayerKey) => (g: THREE.Group | null) => {
+    if (g) groups.current[k] = g
+  }
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime
+    if (t0.current < 0) t0.current = t
+    const local = t - t0.current
+    const intro = variant === 'hero' && !reducedMotion
+
+    let upper = REF_UPPER
+    let tilt = 0
+    let fault: FaultType | null = null
+    let active: Group | null = null
+    let showGroups = false
+    if (variant === 'simulator') {
+      const st = useSimulationStore.getState()
+      upper = st.sim.upper
+      tilt = st.sim.tilt
+      fault = st.sim.fault?.type ?? null
+      active = currentActiveGroup(st.sim)
+      showGroups = st.showGroups
+    }
+
+    explode.current = reducedMotion
+      ? exploded
+        ? 1
+        : 0
+      : THREE.MathUtils.damp(explode.current, exploded ? 1 : 0, 5, delta)
+
+    INTRO_ORDER.forEach((k, idx) => {
+      const g = groups.current[k]
+      if (!g) return
+      const off = EXPLODE[k]
+      const drop = intro ? 0.8 * (1 - easeOutCubic((local - idx * 0.15) / 0.7)) : 0
+      g.position.set((off?.[0] ?? 0) * explode.current, (off?.[1] ?? 0) * explode.current + drop, (off?.[2] ?? 0) * explode.current)
+    })
+
+    if (root.current) root.current.rotation.y = variant === 'hero' && !reducedMotion ? Math.sin(t * 0.2) * 0.15 : 0
+
+    const rad = (tilt * Math.PI) / 180
+    const pz = tilt >= 0 ? TILT_Z : -TILT_Z
+    if (pivot.current && platform.current) {
+      pivot.current.position.set(0, BASE_TOP + H0, pz)
+      pivot.current.rotation.x = rad
+      platform.current.position.z = -pz
+    }
+    const hl = H0 + (tilt > 0 ? TILT_LIFT * Math.sin(rad) : 0)
+    const hr = H0 + (tilt < 0 ? TILT_LIFT * Math.sin(-rad) : 0)
+    if (tiltL.current) {
+      tiltL.current.scale.y = hl / 2
+      tiltL.current.position.y = BASE_TOP + hl / 2
+    }
+    if (tiltR.current) {
+      tiltR.current.scale.y = hr / 2
+      tiltR.current.position.y = BASE_TOP + hr / 2
+    }
+
+    const pulse = 0.5 + 0.5 * Math.sin(t * 4)
+    const faultPulse = LOOK.faultPulse * (0.45 + 0.55 * Math.sin(t * 7) ** 2)
+    const introWave = intro ? INTRO_ORDER.indexOf('topChambers') * 0.15 + 0.3 : 0
+
+    for (let i = 0; i < N_UPPER; i++) {
+      const mesh = chambers.current[i]
+      if (!mesh) continue
+      const u = intro ? REF * easeOutCubic((local - introWave - i * 0.04) / 0.5) : upper[i]
+      const ry = cellRy(u)
+      mesh.scale.set(cellSx(u), ry / CELL_R, 1)
+      mesh.position.y = FOAM_TOP + ry
+      const m = mats.chambers[i]
+      const g = groupOf(i)
+      m.color.copy(showGroups ? (g === 'A' ? C.a : C.b) : C.chamber)
+      const faulty = (fault === 'leak' && i === LEAK_CHAMBER) || (fault === 'overpressure' && g === 'A')
+      if (faulty) setEmissive(m, C.danger, faultPulse)
+      else if (active === g) setEmissive(m, C.accent, LOOK.activePulse * pulse)
+      else if (variant === 'explorer' && selectedLayer === 'topChambers') setEmissive(m, C.accent, LOOK.selectedEmissive)
+      else setEmissive(m, C.black, 0)
+    }
+
+    LOADS.forEach((load, k) => {
+      const mesh = loads.current[k]
+      if (!mesh) return
+      const half = load.size[0] / 2
+      let top = 0
+      for (let i = 0; i < N_UPPER; i++) {
+        if (Math.abs(chamberX(i) - load.x) <= half + PITCH / 2) top = Math.max(top, cellRy(upper[i]))
+      }
+      mesh.position.y = FOAM_TOP + 2 * top + load.size[1] / 2
+    })
+
+    const faultLayer = fault ? FAULT_LAYER[fault] : null
+    ;(Object.keys(byLayer) as LayerKey[]).forEach((k) => {
+      if (k === 'topChambers') return
+      const highlight = k === faultLayer ? faultPulse : variant === 'explorer' && k === selectedLayer ? LOOK.selectedEmissive : 0
+      byLayer[k].forEach((m) => setEmissive(m, k === faultLayer ? C.danger : C.accent, highlight))
+    })
+    if (fault === 'sensor') mats.mat.color.copy(C.danger)
+
+    mats.led.color.copy(fault ? (Math.sin(t * 8) > 0 ? C.ledFault : C.black) : C.ledOk)
+
+    if (variant === 'explorer') {
+      ;(Object.keys(byLayer) as LayerKey[]).forEach((k) => {
+        const dim = selectedLayer !== null && k !== selectedLayer
+        byLayer[k].forEach((m) => {
+          const base = (m.userData.baseOpacity as number | undefined) ?? 1
+          const target = dim ? base * LOOK.dimOpacity : base
+          m.opacity = reducedMotion ? target : THREE.MathUtils.damp(m.opacity, target, 8, delta)
+          m.depthWrite = m.opacity > 0.6
+        })
+      })
+    }
+  })
+
+  const pick = (id: LayerId) =>
+    onSelectLayer
+      ? {
+          onClick: (e: ThreeEvent<MouseEvent>) => {
+            e.stopPropagation()
+            onSelectLayer(id)
+          },
+          onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+            e.stopPropagation()
+            document.body.style.cursor = 'pointer'
+          },
+          onPointerOut: () => {
+            document.body.style.cursor = ''
+          },
+        }
+      : {}
+
+  return (
+    <group ref={root}>
+      <group ref={setGroup('base')}>
+        <RoundedBox args={[2.06, BASE_TOP, 0.96]} radius={0.02} smoothness={2} position={[0, BASE_TOP / 2, 0]} material={mats.base} />
+      </group>
+
+      <group ref={setGroup('tiltChambers')} {...pick('tiltChambers')}>
+        <mesh ref={tiltL} geometry={geo.tilt} material={mats.tilt} scale={[1, H0 / 2, TILT_RZ]} position={[0, BASE_TOP + H0 / 2, -TILT_Z]} />
+        <mesh ref={tiltR} geometry={geo.tilt} material={mats.tilt} scale={[1, H0 / 2, TILT_RZ]} position={[0, BASE_TOP + H0 / 2, TILT_Z]} />
+      </group>
+
+      <group ref={setGroup('controller')} {...pick('controller')}>
+        <group position={CTRL_POS} rotation={[0, CTRL_YAW, 0]}>
+          <RoundedBox args={[0.3, 0.14, 0.22]} radius={0.04} smoothness={3} position={[0, 0.07, 0]} material={mats.controller} />
+          <mesh position={[-0.02, 0.075, 0.1105]} material={mats.screen}>
+            <planeGeometry args={[0.17, 0.08]} />
+          </mesh>
+          <mesh position={[0.1, 0.075, 0.108]} material={mats.led}>
+            <sphereGeometry args={[0.012, 12, 12]} />
+          </mesh>
+        </group>
+        <mesh geometry={geo.hose0} material={mats.hose} />
+        <mesh geometry={geo.hose1} material={mats.hose} />
+      </group>
+
+      <group ref={pivot}>
+        <group ref={platform}>
+          <group ref={setGroup('foam')} {...pick('foam')}>
+            <RoundedBox args={[1.94, FOAM_TOP, 0.74]} radius={0.02} smoothness={2} position={[0, FOAM_TOP / 2, 0]} material={mats.foam} />
+            <RoundedBox args={[1.98, RAIL_H, RAIL_W]} radius={0.025} smoothness={2} position={[0, RAIL_H / 2, -RAIL_Z]} material={mats.rail} />
+            <RoundedBox args={[1.98, RAIL_H, RAIL_W]} radius={0.025} smoothness={2} position={[0, RAIL_H / 2, RAIL_Z]} material={mats.rail} />
+          </group>
+
+          <group ref={setGroup('topChambers')} {...pick('topChambers')}>
+            {Array.from({ length: N_UPPER }, (_, i) => (
+              <mesh
+                key={i}
+                ref={(m: THREE.Mesh | null) => {
+                  chambers.current[i] = m
+                }}
+                geometry={geo.cell}
+                material={mats.chambers[i]}
+                scale={[cellSx(REF), REF, 1]}
+                position={[chamberX(i), FOAM_TOP + cellRy(REF), 0]}
+              />
+            ))}
+          </group>
+
+          <group ref={setGroup('pneumatic')} {...pick('pneumatic')}>
+            <mesh geometry={geo.lineA} material={mats.tube} />
+            <mesh geometry={geo.lineB} material={mats.tube} />
+            <mesh geometry={geo.branches} material={mats.tube} />
+          </group>
+
+          <group ref={setGroup('sensors')} {...pick('sensors')}>
+            <mesh geometry={geo.puck} material={mats.sensor} position={[0.55, LINE_Y + 0.02, LINE_A_Z]} />
+            <mesh geometry={geo.puck} material={mats.sensor} position={[0.25, LINE_Y + 0.02, LINE_B_Z]} />
+            <mesh geometry={geo.puck} material={mats.sensor} position={[-0.3, LINE_Y + 0.02, (LINE_A_Z + LINE_B_Z) / 2]} />
+            {variant === 'explorer' && (
+              <mesh position={[0, FOAM_TOP + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} material={mats.mat}>
+                <planeGeometry args={[1.9, CELL_SPAN, 15, 7]} />
+              </mesh>
+            )}
+          </group>
+
+          {variant === 'simulator' &&
+            LOADS.map((load, k) => (
+              <mesh
+                key={k}
+                ref={(m: THREE.Mesh | null) => {
+                  loads.current[k] = m
+                }}
+                position={[load.x, FOAM_TOP + 2 * cellRy(REF) + load.size[1] / 2, 0]}
+                material={mats.load}
+              >
+                <boxGeometry args={[...load.size]} />
+                <Edges color={LOOK.loadEdge} threshold={15} transparent opacity={0.7} />
+              </mesh>
+            ))}
+
+          {variant !== 'simulator' && (
+            <group ref={setGroup('cover')} {...pick('cover')}>
+              <RoundedBox args={[1.0, 0.03, 0.92]} radius={0.012} smoothness={2} position={[-0.5, COVER_TOP - 0.015, 0]} material={mats.cover} />
+              <mesh position={[-0.5, COVER_TOP / 2, -0.451]} material={mats.cover}>
+                <boxGeometry args={[1.0, COVER_TOP, 0.018]} />
+              </mesh>
+              <mesh position={[-0.5, COVER_TOP / 2, 0.451]} material={mats.cover}>
+                <boxGeometry args={[1.0, COVER_TOP, 0.018]} />
+              </mesh>
+              <mesh position={[-1.0, COVER_TOP / 2, 0]} material={mats.cover}>
+                <boxGeometry args={[0.018, COVER_TOP, 0.92]} />
+              </mesh>
+              <group position={[0, COVER_TOP, 0]} rotation={[0, 0, 0.6]}>
+                <RoundedBox args={[0.2, 0.022, 0.92]} radius={0.01} smoothness={2} position={[0.1, -0.011, 0]} material={mats.cover} />
+              </group>
+            </group>
+          )}
+        </group>
+      </group>
+    </group>
+  )
+}

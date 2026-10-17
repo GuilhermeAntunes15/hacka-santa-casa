@@ -1,0 +1,198 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+/* Direção: instrumentação biomédica de precisão.
+   Ciano = estado ativo / dado vivo · Azul = interação · Verde = confirmação / estado seguro
+   Amarelo e vermelho = só heatmap e alertas. Hairlines, cantos 4–8px, nada de glow. */
+@theme {
+  --color-bg: #07111F;
+  --color-surface: #0B1F33;
+  --color-surface-2: #0E2740;
+  --color-accent: #23D5E7;
+  --color-tech: #3B82F6;
+  --color-ok: #21C58E;
+  --color-fg: #F2F7FA;
+  --color-muted: #94A3B8;
+  --color-warn: #FACC15;
+  --color-danger: #EF4444;
+  --color-line: #1E3A55;
+  --color-hair: rgb(148 163 184 / 0.14);
+  --color-focus: #23D5E7;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-fault-pulse: fault-pulse 1.8s ease-in-out infinite;
+  --animate-led: led 2.4s ease-in-out infinite;
+
+  @keyframes fault-pulse {
+    0%, 100% { border-color: rgb(239 68 68 / 0.45); }
+    50% { border-color: rgb(239 68 68 / 0.95); }
+  }
+  @keyframes led {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  color-scheme: dark;
+  scrollbar-color: #1E3A55 var(--color-bg);
+}
+
+body {
+  overflow-x: clip;
+}
+
+::selection {
+  background: rgb(35 213 231 / 0.28);
+  color: var(--color-fg);
+}
+
+input, textarea {
+  caret-color: var(--color-accent);
+}
+
+[id] {
+  scroll-margin-top: 6.75rem;
+}
+@media (min-width: 1024px) {
+  [id] {
+    scroll-margin-top: 4rem;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Rótulo técnico: metadados em mono caixa alta */
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Número vivo: sempre mono tabular */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Grid técnico sutil (1px a ~4%) */
+@utility tech-grid {
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.045) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Régua: marcas a cada 8px, marca maior a cada 40px */
+@utility ruler-x {
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 0.45) 1px, transparent 1px),
+    linear-gradient(to right, rgb(148 163 184 / 0.22) 1px, transparent 1px);
+  background-size: 40px 8px, 8px 4px;
+  background-repeat: repeat-x;
+  background-position: left top, left top;
+}
+@utility ruler-y {
+  background-image:
+    linear-gradient(to bottom, rgb(148 163 184 / 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.22) 1px, transparent 1px);
+  background-size: 8px 40px, 4px 8px;
+  background-repeat: repeat-y;
+  background-position: left top, left top;
+}
+
+/* Cantoneiras de instrumento nos 4 cantos (usar em elemento relative) */
+@utility frame-corners {
+  --c: rgb(148 163 184 / 0.55);
+  background-image:
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c)),
+    linear-gradient(var(--c), var(--c)), linear-gradient(var(--c), var(--c));
+  background-repeat: no-repeat;
+  background-size: 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px, 12px 1px, 1px 12px;
+  background-position:
+    left 6px top 6px, left 6px top 6px,
+    right 6px top 6px, right 6px top 6px,
+    left 6px bottom 6px, left 6px bottom 6px,
+    right 6px bottom 6px, right 6px bottom 6px;
+}
+
+/* Slider de instrumento */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 24px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, var(--color-tech) var(--fill, 50%), #1E3A55 var(--fill, 50%));
+  border-radius: 1px;
+}
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  background: #1E3A55;
+}
+input[type="range"]::-moz-range-progress {
+  height: 2px;
+  background: var(--color-tech);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border-radius: 3px;
+  background: var(--color-fg);
+  border: 2px solid var(--color-tech);
+  transition: transform 150ms var(--ease-out-expo);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--color-fg);
+  border: 2px solid var(--color-tech);
+}
+input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+input[type="range"]:focus-visible {
+  outline-offset: 4px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.4;
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
