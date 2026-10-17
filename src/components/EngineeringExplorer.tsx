@@ -33,7 +33,7 @@ export default function EngineeringExplorer() {
       <div className="grid gap-3 lg:grid-cols-12">
         {/* Índice técnico 01–07 */}
         <nav aria-label="Índice de componentes" className="lg:col-span-3">
-          <ol className="divide-y divide-hair overflow-hidden rounded-lg border border-line bg-surface/40" aria-label="Componentes do colchão">
+          <ol className="divide-y divide-hair overflow-hidden rounded-lg border border-line bg-surface/40" aria-label="Componentes do sobrecolchão">
             {LAYER_ORDER.map((id, i) => {
               const on = selected === id
               return (

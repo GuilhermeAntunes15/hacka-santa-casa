@@ -11,7 +11,7 @@ export default function FaultAlert() {
   if (!type) return null
   const copy = FAULT_COPY[type]
 
-  // Faixa sob o 3D, dentro do palco: o viewport encolhe durante a falha para não cobrir o colchão.
+  // Faixa sob o 3D, dentro do palco: o viewport encolhe durante a falha para não cobrir o sobrecolchão.
   return (
     <motion.div
       key={type}

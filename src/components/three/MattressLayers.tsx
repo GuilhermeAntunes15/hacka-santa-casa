@@ -11,10 +11,11 @@ import type { FaultType, Group, LayerId } from '../../lib/simulationEngine'
 export type Variant = 'hero' | 'simulator' | 'explorer'
 
 const LOOK = {
-  base: '#1A2130',
+  bedFrame: '#454B55',
+  bedMattress: '#8E8A83',
+  sheet: '#16213B',
+  strap: '#2B3C63',
   tilt: '#1D4ED8',
-  foam: '#9AA6B4',
-  rail: '#C9CED6',
   chamber: '#86A6CC',
   chamberOpacity: 0.85,
   groupA: '#7CC4FF',
@@ -35,48 +36,60 @@ const LOOK = {
   pointSquash: 0.35,
   danger: '#EF4444',
   dimOpacity: 0.3,
+  bedDimOpacity: 0.18,
   activePulse: 0.35,
   faultPulse: 0.9,
   selectedEmissive: 0.45,
 }
 
-const BASE_TOP = 0.07
-const H0 = 0.1
+const FRAME_H = 0.05
+const MAT_H = 0.16
+const MAT_TOP = FRAME_H + MAT_H
+const MAT_D = 0.92
+const BOARD_X = 1.08
+const BOARD_T = 0.04
+const HEAD_H = 0.6
+const FOOT_H = 0.36
+const SHEET_T = 0.015
+const BASE_TOP = MAT_TOP + SHEET_T
+const H0 = 0.04
 const TILT_LIFT = 0.45
 const TILT_Z = 0.225
 const TILT_RZ = 0.2
 const TILT_LEN = 1.9
-const FOAM_TOP = 0.09
-const CELL_R = 0.062
+const DECK = BASE_TOP + H0
+const CELL_Y = 0.005
+const CELL_R = 0.045
+const CELL_W = 0.062
 const CELL_SPAN = 0.72
-const RAIL_H = 0.2
-const RAIL_W = 0.08
-const RAIL_Z = 0.44 - RAIL_W / 2
 const PITCH = 0.12
-const LINE_Y = 0.08
-const LINE_A_Z = -0.47
-const LINE_B_Z = -0.51
-const COVER_TOP = 0.23
-const CTRL_POS = new THREE.Vector3(1.32, 0, -0.08)
-const CTRL_YAW = 0.55
+const LINE_Y = 0.03
+const LINE_A_Z = -0.41
+const LINE_B_Z = -0.435
+const COVER_TOP = 0.088
+const SKIRT_BOTTOM = -H0 - SHEET_T
+const CTRL_D = 0.08
+const CTRL_H = 0.17
+const CTRL_POS = new THREE.Vector3(BOARD_X + BOARD_T / 2 + CTRL_D / 2, FOOT_H - CTRL_H / 2, 0)
+const HOSE_Z = [0.03, -0.03] as const
 
 const chamberX = (i: number) => (i - (N_UPPER - 1) / 2) * PITCH
 const CELL_MIN = 0.25
 const cellRy = (u: number) => CELL_R * Math.max(u, CELL_MIN)
-const cellSx = (u: number) => Math.min(1, 0.55 + 0.45 * Math.max(u, CELL_MIN))
+const cellSx = (u: number) => (CELL_W / CELL_R) * Math.min(1, 0.55 + 0.45 * Math.max(u, CELL_MIN))
 
 type LayerKey = LayerId | 'base'
 
-const INTRO_ORDER: LayerKey[] = ['base', 'tiltChambers', 'foam', 'pneumatic', 'topChambers', 'sensors', 'controller', 'cover']
+const INTRO_ORDER: LayerKey[] = ['base', 'foam', 'tiltChambers', 'pneumatic', 'topChambers', 'sensors', 'controller', 'cover']
 
 const EXPLODE: Partial<Record<LayerKey, [number, number, number]>> = {
-  tiltChambers: [0, 0.25, 0],
-  foam: [0, 0.5, 0],
-  topChambers: [0, 0.8, 0],
-  sensors: [0, 0.95, 0],
-  cover: [0, 1.15, 0],
+  foam: [0, 0.16, 0],
+  tiltChambers: [0, 0.38, 0],
+  topChambers: [0, 0.66, 0],
+  sensors: [0, 0.8, 0],
+  cover: [0, 1.02, 0],
   pneumatic: [0, 0, -0.35],
-  controller: [0.25, 0, 0],
+  controller: [0.3, 0, 0],
 }
 
 const LOADS = [
@@ -126,10 +139,11 @@ function makeMaterials(variant: Variant) {
   const mat = new THREE.MeshBasicMaterial({ color: LOOK.sensor, wireframe: true, transparent: true, opacity: 0.35, depthWrite: false })
   mat.userData.baseOpacity = 0.35
   return {
-    base: std(LOOK.base, { roughness: 0.55, metalness: 0.3 }),
+    bedFrame: std(LOOK.bedFrame, { roughness: 0.9, metalness: 0, envMapIntensity: 0.3 }),
+    bedMattress: std(LOOK.bedMattress, { roughness: 1, metalness: 0, envMapIntensity: 0.25 }),
     tilt: std(LOOK.tilt, { roughness: 0.35 }),
-    foam: std(LOOK.foam, { roughness: 0.95 }),
-    rail: std(LOOK.rail, { roughness: 0.9, metalness: 0 }),
+    sheet: std(LOOK.sheet, { roughness: 0.6 }),
+    strap: std(LOOK.strap, { roughness: 0.7 }),
     chambers,
     tube: std(LOOK.tube, { roughness: 0.3, metalness: 0.25 }),
     hose: std(LOOK.hose, { roughness: 0.5, metalness: 0.3 }),
@@ -146,9 +160,9 @@ function makeMaterials(variant: Variant) {
 type Materials = ReturnType<typeof makeMaterials>
 
 const layerMaterials = (m: Materials): Record<LayerKey, THREE.Material[]> => ({
-  base: [m.base],
+  base: [m.bedFrame, m.bedMattress],
   tiltChambers: [m.tilt],
-  foam: [m.foam, m.rail],
+  foam: [m.sheet, m.strap],
   topChambers: m.chambers,
   pneumatic: [m.tube],
   sensors: [m.sensor, m.mat],
@@ -174,23 +188,34 @@ function setEmissive(m: THREE.Material, color: THREE.Color, intensity: number) {
   }
 }
 
-const ctrlLocal = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z).applyAxisAngle(new THREE.Vector3(0, 1, 0), CTRL_YAW).add(CTRL_POS)
+const LINE_END_X = 0.985
 
-function hoseCurve(k: number) {
-  const port = ctrlLocal(-0.15, 0.07, k === 0 ? 0.04 : -0.04)
-  const out = ctrlLocal(-0.28, 0.03, k === 0 ? 0.04 : -0.04)
-  const z = 0.14 - 0.07 * k
-  return new THREE.CatmullRomCurve3([new THREE.Vector3(1.0, 0.13, z), new THREE.Vector3(1.08, 0.03, z), out, port])
+function hoseCurve(z: number) {
+  const y = DECK + LINE_Y
+  const port = CTRL_POS.x + CTRL_D / 4
+  return new THREE.CatmullRomCurve3([
+    new THREE.Vector3(LINE_END_X, y, z),
+    new THREE.Vector3(1.03, y + 0.06, z),
+    new THREE.Vector3(BOARD_X, FOOT_H + 0.05, z),
+    new THREE.Vector3(port, FOOT_H + 0.035, z),
+    new THREE.Vector3(port, FOOT_H, z),
+  ])
 }
 
-function lineCurve(z: number, footX: number) {
+function lineCurve(z: number, turnX: number, endZ: number) {
   return new THREE.CatmullRomCurve3([
     new THREE.Vector3(-0.96, LINE_Y, z),
-    new THREE.Vector3(0.82, LINE_Y, z),
-    new THREE.Vector3(footX, -0.02, z + 0.08),
-    new THREE.Vector3(footX, -0.03, 0.1),
-    new THREE.Vector3(footX + 0.03, -0.04, 0.3),
+    new THREE.Vector3(turnX, LINE_Y, z),
+    new THREE.Vector3(LINE_END_X - 0.01, LINE_Y, (z + endZ) / 2),
+    new THREE.Vector3(LINE_END_X, LINE_Y, endZ),
   ])
+}
+
+function mergedBoxes(boxes: [w: number, h: number, d: number, x: number, y: number, z: number][]) {
+  const parts = boxes.map(([w, h, d, x, y, z]) => new THREE.BoxGeometry(w, h, d).translate(x, y, z))
+  const merged = mergeGeometries(parts)
+  parts.forEach((g) => g.dispose())
+  return merged
 }
 
 export default function MattressModel({ variant, reducedMotion, selectedLayer, onSelectLayer, exploded }: MattressModelProps) {
@@ -207,15 +232,32 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
     })
     const branches = mergeGeometries(branchParts)
     branchParts.forEach((g) => g.dispose())
+    const hoseParts = HOSE_Z.map((z) => new THREE.TubeGeometry(hoseCurve(z), 48, 0.012, 8, false))
+    const hoses = mergeGeometries(hoseParts)
+    hoseParts.forEach((g) => g.dispose())
+    const hookParts = [-0.09, 0.09].map((z) => new THREE.TorusGeometry(0.03, 0.006, 6, 16, Math.PI).translate(BOARD_X, FOOT_H, z))
+    const hooks = mergeGeometries(hookParts)
+    hookParts.forEach((g) => g.dispose())
+    const strapZ = MAT_D / 2 + 0.004
     return {
       cell,
       tilt,
-      lineA: new THREE.TubeGeometry(lineCurve(LINE_A_Z, 0.95), 64, 0.012, 8, false),
-      lineB: new THREE.TubeGeometry(lineCurve(LINE_B_Z, 0.98), 64, 0.012, 8, false),
+      lineA: new THREE.TubeGeometry(lineCurve(LINE_A_Z, 0.84, HOSE_Z[0]), 64, 0.012, 8, false),
+      lineB: new THREE.TubeGeometry(lineCurve(LINE_B_Z, 0.88, HOSE_Z[1]), 64, 0.012, 8, false),
       branches,
-      hose0: new THREE.TubeGeometry(hoseCurve(0), 48, 0.012, 8, false),
-      hose1: new THREE.TubeGeometry(hoseCurve(1), 48, 0.012, 8, false),
+      hoses,
+      hooks,
       puck: new THREE.CylinderGeometry(0.028, 0.028, 0.03, 16),
+      bed: mergedBoxes([
+        [2 * BOARD_X + BOARD_T, FRAME_H, 0.98, 0, FRAME_H / 2, 0],
+        [BOARD_T, HEAD_H, 0.98, -BOARD_X, HEAD_H / 2, 0],
+        [BOARD_T, FOOT_H, 0.98, BOARD_X, FOOT_H / 2, 0],
+      ]),
+      straps: mergedBoxes(
+        [-0.6, 0.6].flatMap((x) =>
+          [-strapZ, strapZ].map((z): [number, number, number, number, number, number] => [0.05, 0.13, 0.008, x, MAT_TOP + SHEET_T - 0.065, z]),
+        ),
+      ),
     }
   }, [])
 
@@ -277,7 +319,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       if (marker.current) {
         marker.current.visible = !!point
         if (point) {
-          marker.current.position.set(chamberX(point.r), FOAM_TOP + 2 * cellRy(upper[point.r]), -CELL_SPAN / 2 + ((point.c + 0.5) * CELL_SPAN) / COLS)
+          marker.current.position.set(chamberX(point.r), CELL_Y + 2 * cellRy(upper[point.r]), -CELL_SPAN / 2 + ((point.c + 0.5) * CELL_SPAN) / COLS)
           markerCone.current?.scale.setScalar(0.6 + (0.4 * point.intensity) / POINT_MAX)
         }
       }
@@ -293,7 +335,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       const g = groups.current[k]
       if (!g) return
       const off = EXPLODE[k]
-      const drop = intro ? 0.8 * (1 - easeOutCubic((local - idx * 0.15) / 0.7)) : 0
+      const drop = intro && k !== 'base' ? 0.8 * (1 - easeOutCubic((local - idx * 0.15) / 0.7)) : 0
       g.position.set((off?.[0] ?? 0) * explode.current, (off?.[1] ?? 0) * explode.current + drop, (off?.[2] ?? 0) * explode.current)
     })
 
@@ -302,7 +344,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
     const rad = (tilt * Math.PI) / 180
     const pz = tilt >= 0 ? TILT_Z : -TILT_Z
     if (pivot.current && platform.current) {
-      pivot.current.position.set(0, BASE_TOP + H0, pz)
+      pivot.current.position.set(0, DECK, pz)
       pivot.current.rotation.x = rad
       platform.current.position.z = -pz
     }
@@ -327,7 +369,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       const u = intro ? REF * easeOutCubic((local - introWave - i * 0.04) / 0.5) : upper[i]
       const ry = cellRy(u)
       mesh.scale.set(cellSx(u), ry / CELL_R, 1)
-      mesh.position.y = FOAM_TOP + ry
+      mesh.position.y = CELL_Y + ry
       const m = mats.chambers[i]
       const g = groupOf(i)
       const faulty = (fault === 'leak' && i === LEAK_CHAMBER) || (fault === 'overpressure' && g === 'A')
@@ -346,7 +388,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       for (let i = 0; i < N_UPPER; i++) {
         if (Math.abs(chamberX(i) - load.x) <= half + PITCH / 2) top = Math.max(top, cellRy(upper[i]))
       }
-      mesh.position.y = FOAM_TOP + 2 * top + load.size[1] / 2
+      mesh.position.y = CELL_Y + 2 * top + load.size[1] / 2
     })
 
     const faultLayer = fault ? FAULT_LAYER[fault] : null
@@ -361,10 +403,11 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
 
     if (variant === 'explorer') {
       ;(Object.keys(byLayer) as LayerKey[]).forEach((k) => {
-        const dim = selectedLayer !== null && k !== selectedLayer
+        const bed = k === 'base'
+        const dim = bed ? selectedLayer !== null || exploded : selectedLayer !== null && k !== selectedLayer
         byLayer[k].forEach((m) => {
           const base = (m.userData.baseOpacity as number | undefined) ?? 1
-          const target = dim ? base * LOOK.dimOpacity : base
+          const target = dim ? base * (bed ? LOOK.bedDimOpacity : LOOK.dimOpacity) : base
           m.opacity = reducedMotion ? target : THREE.MathUtils.damp(m.opacity, target, 8, delta)
           m.depthWrite = m.opacity > 0.6
         })
@@ -404,10 +447,18 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
         }
       : {}
 
+  const blockPick = onSelectLayer ? { onClick: (e: ThreeEvent<MouseEvent>) => e.stopPropagation() } : {}
+
   return (
     <group ref={root}>
-      <group ref={setGroup('base')}>
-        <RoundedBox args={[2.06, BASE_TOP, 0.96]} radius={0.02} smoothness={2} position={[0, BASE_TOP / 2, 0]} material={mats.base} />
+      <group ref={setGroup('base')} {...blockPick}>
+        <mesh geometry={geo.bed} material={mats.bedFrame} />
+        <RoundedBox args={[2.0, MAT_H, MAT_D]} radius={0.04} smoothness={3} position={[0, FRAME_H + MAT_H / 2, 0]} material={mats.bedMattress} />
+      </group>
+
+      <group ref={setGroup('foam')} {...pick('foam')}>
+        <RoundedBox args={[1.98, SHEET_T, 0.9]} radius={0.006} smoothness={2} position={[0, MAT_TOP + SHEET_T / 2, 0]} material={mats.sheet} />
+        <mesh geometry={geo.straps} material={mats.strap} />
       </group>
 
       <group ref={setGroup('tiltChambers')} {...pick('tiltChambers')}>
@@ -416,27 +467,21 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       </group>
 
       <group ref={setGroup('controller')} {...pick('controller')}>
-        <group position={CTRL_POS} rotation={[0, CTRL_YAW, 0]}>
-          <RoundedBox args={[0.3, 0.14, 0.22]} radius={0.04} smoothness={3} position={[0, 0.07, 0]} material={mats.controller} />
-          <mesh position={[-0.02, 0.075, 0.1105]} material={mats.screen}>
-            <planeGeometry args={[0.17, 0.08]} />
+        <group position={CTRL_POS} rotation={[0, Math.PI / 2, 0]}>
+          <RoundedBox args={[0.28, CTRL_H, CTRL_D]} radius={0.025} smoothness={3} material={mats.controller} />
+          <mesh position={[-0.025, 0.01, CTRL_D / 2 + 0.0005]} material={mats.screen}>
+            <planeGeometry args={[0.16, 0.08]} />
           </mesh>
-          <mesh position={[0.1, 0.075, 0.108]} material={mats.led}>
+          <mesh position={[0.095, 0.01, CTRL_D / 2 - 0.002]} material={mats.led}>
             <sphereGeometry args={[0.012, 12, 12]} />
           </mesh>
         </group>
-        <mesh geometry={geo.hose0} material={mats.hose} />
-        <mesh geometry={geo.hose1} material={mats.hose} />
+        <mesh geometry={geo.hooks} material={mats.controller} />
+        <mesh geometry={geo.hoses} material={mats.hose} />
       </group>
 
       <group ref={pivot}>
         <group ref={platform}>
-          <group ref={setGroup('foam')} {...pick('foam')}>
-            <RoundedBox args={[1.94, FOAM_TOP, 0.74]} radius={0.02} smoothness={2} position={[0, FOAM_TOP / 2, 0]} material={mats.foam} />
-            <RoundedBox args={[1.98, RAIL_H, RAIL_W]} radius={0.025} smoothness={2} position={[0, RAIL_H / 2, -RAIL_Z]} material={mats.rail} />
-            <RoundedBox args={[1.98, RAIL_H, RAIL_W]} radius={0.025} smoothness={2} position={[0, RAIL_H / 2, RAIL_Z]} material={mats.rail} />
-          </group>
-
           <group ref={setGroup('topChambers')} {...pick('topChambers')}>
             {Array.from({ length: N_UPPER }, (_, i) => (
               <mesh
@@ -447,7 +492,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
                 geometry={geo.cell}
                 material={mats.chambers[i]}
                 scale={[cellSx(REF), REF, 1]}
-                position={[chamberX(i), FOAM_TOP + cellRy(REF), 0]}
+                position={[chamberX(i), CELL_Y + cellRy(REF), 0]}
               />
             ))}
           </group>
@@ -463,7 +508,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
             <mesh geometry={geo.puck} material={mats.sensor} position={[0.25, LINE_Y + 0.02, LINE_B_Z]} />
             <mesh geometry={geo.puck} material={mats.sensor} position={[-0.3, LINE_Y + 0.02, (LINE_A_Z + LINE_B_Z) / 2]} />
             {variant === 'explorer' && (
-              <mesh position={[0, FOAM_TOP + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]} material={mats.mat}>
+              <mesh position={[0, CELL_Y - 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]} material={mats.mat}>
                 <planeGeometry args={[1.9, CELL_SPAN, 15, 7]} />
               </mesh>
             )}
@@ -476,7 +521,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
                 ref={(m: THREE.Mesh | null) => {
                   loads.current[k] = m
                 }}
-                position={[load.x, FOAM_TOP + 2 * cellRy(REF) + load.size[1] / 2, 0]}
+                position={[load.x, CELL_Y + 2 * cellRy(REF) + load.size[1] / 2, 0]}
                 material={mats.load}
               >
                 <boxGeometry args={[...load.size]} />
@@ -486,7 +531,7 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
 
           {variant === 'simulator' && (
             <>
-              <mesh rotation-x={-Math.PI / 2} position={[0, FOAM_TOP + 2 * cellRy(REF), 0]} {...placePoint}>
+              <mesh rotation-x={-Math.PI / 2} position={[0, CELL_Y + 2 * cellRy(REF), 0]} {...placePoint}>
                 <planeGeometry args={[N_UPPER * PITCH, CELL_SPAN]} />
                 <meshBasicMaterial transparent opacity={0} depthWrite={false} />
               </mesh>
@@ -507,18 +552,18 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
 
           {variant !== 'simulator' && (
             <group ref={setGroup('cover')} {...pick('cover')}>
-              <RoundedBox args={[1.0, 0.03, 0.92]} radius={0.012} smoothness={2} position={[-0.5, COVER_TOP - 0.015, 0]} material={mats.cover} />
-              <mesh position={[-0.5, COVER_TOP / 2, -0.451]} material={mats.cover}>
-                <boxGeometry args={[1.0, COVER_TOP, 0.018]} />
+              <RoundedBox args={[1.0, 0.02, 0.93]} radius={0.008} smoothness={2} position={[-0.5, COVER_TOP - 0.01, 0]} material={mats.cover} />
+              <mesh position={[-0.5, (COVER_TOP + SKIRT_BOTTOM) / 2, -0.461]} material={mats.cover}>
+                <boxGeometry args={[1.0, COVER_TOP - SKIRT_BOTTOM, 0.012]} />
               </mesh>
-              <mesh position={[-0.5, COVER_TOP / 2, 0.451]} material={mats.cover}>
-                <boxGeometry args={[1.0, COVER_TOP, 0.018]} />
+              <mesh position={[-0.5, (COVER_TOP + SKIRT_BOTTOM) / 2, 0.461]} material={mats.cover}>
+                <boxGeometry args={[1.0, COVER_TOP - SKIRT_BOTTOM, 0.012]} />
               </mesh>
-              <mesh position={[-1.0, COVER_TOP / 2, 0]} material={mats.cover}>
-                <boxGeometry args={[0.018, COVER_TOP, 0.92]} />
+              <mesh position={[-1.0, (COVER_TOP + SKIRT_BOTTOM) / 2, 0]} material={mats.cover}>
+                <boxGeometry args={[0.012, COVER_TOP - SKIRT_BOTTOM, 0.93]} />
               </mesh>
-              <group position={[0, COVER_TOP, 0]} rotation={[0, 0, 0.6]}>
-                <RoundedBox args={[0.2, 0.022, 0.92]} radius={0.01} smoothness={2} position={[0.1, -0.011, 0]} material={mats.cover} />
+              <group position={[0, COVER_TOP, 0]} rotation={[0, 0, 0.45]}>
+                <RoundedBox args={[0.18, 0.016, 0.93]} radius={0.007} smoothness={2} position={[0.09, -0.008, 0]} material={mats.cover} />
               </group>
             </group>
           )}

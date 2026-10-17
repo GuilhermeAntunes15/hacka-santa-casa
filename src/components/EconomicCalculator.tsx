@@ -235,13 +235,13 @@ export default function EconomicCalculator() {
                   <tr key={it.item} className="border-t border-line/50">
                     <td className="py-1 font-sans">{it.item}</td>
                     <td className="py-1">{it.qty}</td>
-                    <td className="py-1 text-right">~{formatBRL(it.cost)}</td>
+                    <td className="py-1 text-right">{it.cost === null ? 'a orçar' : `~${formatBRL(it.cost)}`}</td>
                   </tr>
                 ))}
                 <tr className="border-t border-line">
                   <td className="py-1 font-sans font-semibold">Total do protótipo</td>
                   <td />
-                  <td className="py-1 text-right font-semibold">~{formatBRL(PROTOTYPE_BOM.total)}</td>
+                  <td className="py-1 text-right font-semibold">~{formatBRL(PROTOTYPE_BOM.total)} {PROTOTYPE_BOM.totalSuffix}</td>
                 </tr>
               </tbody>
             </table>

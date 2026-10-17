@@ -12,13 +12,13 @@ export const HERO = {
   title: 'PressuSense Air',
   headline: 'Redistribuindo a pressão. Repensando o cuidado.',
   subtitle:
-    'Um conceito de colchão pneumático inteligente e acessível, projetado para combinar alternância de pressão, assistência ao reposicionamento lateral e monitoramento em uma única plataforma.',
+    'Um conceito de sobrecolchão pneumático inteligente e acessível, instalado sobre o colchão hospitalar existente, que combina alternância de pressão, assistência ao reposicionamento lateral e monitoramento em uma única plataforma.',
   ctaExplore: 'Explorar a tecnologia',
   ctaSimulator: 'Testar o simulador',
   problem:
     'Pacientes com mobilidade reduzida apresentam risco de desenvolver lesões por pressão. Essas lesões podem causar sofrimento, complicações clínicas e custos assistenciais adicionais.',
   proposal:
-    'Democratizar o acesso a tecnologias de suporte para prevenção de lesões por pressão, com arquitetura modular, manutenção simplificada e controle pneumático inteligente.',
+    'Democratizar o acesso a tecnologias de suporte para prevenção de lesões por pressão com um sobrecolchão pneumático instalado sobre o colchão do leito, arquitetura modular, manutenção simplificada e controle pneumático inteligente.',
   status: 'Conceito em desenvolvimento — simulação digital de engenharia, não é dispositivo médico validado',
 }
 
@@ -53,34 +53,34 @@ export const LAYER_ORDER: LayerId[] = [
 export const LAYERS: Record<LayerId, LayerInfo> = {
   cover: {
     title: 'Revestimento',
-    fn: 'Capa em tecido bi-elástico revestido em PU que envolve o conjunto e forma a superfície de contato com o paciente.',
-    importance: 'É a barreira contra fluidos e sujidades e a camada que a equipe higieniza todos os dias; capa soldada e válvulas seladas facilitam a limpeza hospitalar padrão.',
-    costLever: 'Tecido técnico de mercado com zíper de acesso: troca-se só a capa, sem descartar espuma nem câmaras.',
-    limitations: 'Respirabilidade, ação antideslizante, impermeabilidade e retardância ao fogo são requisitos de projeto, ainda não ensaiados; biocompatibilidade (ISO 10993) a avaliar.',
+    fn: 'Capa resistente em tecido bi-elástico revestido em PU que envolve o sobrecolchão e forma a superfície de contato com o paciente.',
+    importance: 'No formato de sobrecolchão a capa é crítica: é a barreira contra fluidos e sujidades, protege as câmaras finas contra abrasão e perfuração e é a camada que a equipe higieniza todos os dias; capa soldada e válvulas seladas facilitam a limpeza hospitalar padrão.',
+    costLever: 'Tecido técnico de mercado com zíper de acesso: troca-se só a capa, sem descartar a manta nem as câmaras.',
+    limitations: 'Resistência à abrasão e à perfuração, respirabilidade, ação antideslizante, impermeabilidade e retardância ao fogo são requisitos de projeto, ainda não ensaiados; biocompatibilidade (ISO 10993) a avaliar.',
     status: 'proposed',
   },
   topChambers: {
     title: 'Câmaras superiores de pressão alternada',
-    fn: 'Câmaras de ar em PU/TPU embutidas na espuma, organizadas em dois grupos (A e B) que se alternam entre sustentar e aliviar a carga.',
-    importance: 'A alternância muda periodicamente os pontos de apoio do corpo — o princípio de redistribuição de carga da proposta.',
+    fn: 'Células transversais de ar em PU/TPU no sobrecolchão, organizadas em dois grupos (A e B) que se alternam entre sustentar e aliviar a carga.',
+    importance: 'A alternância muda periodicamente os pontos de apoio do corpo — o princípio de redistribuição de carga da proposta. Como o sobrecolchão é fino, as células precisam distribuir a pressão ao longo de todo o corpo.',
     costLever: 'Poucas zonas modulares em vez de uma matriz de centenas de células: menos válvulas, menos complexidade e módulos fabricáveis e substituíveis separadamente.',
     limitations: 'Fadiga do material, soldas e tempo de ciclo não foram validados. Na operação real o ciclo seria da ordem de minutos; aqui ele é comprimido para 8 s. Pressão baixa demais deixa o corpo afundar; alta demais cria novos pontos de pressão.',
     status: 'simulated',
   },
   tiltChambers: {
     title: 'Câmaras inferiores de inclinação',
-    fn: 'Grupo lateral de bolsões longitudinais sob a plataforma: comandos discretos inflam um lado e esvaziam o oposto, inclinando a superfície.',
+    fn: 'Grupo lateral de bolsões longitudinais na base do sobrecolchão, sob as células alternantes: comandos discretos inflam um lado e esvaziam o oposto, inclinando a superfície.',
     importance: 'Auxilia o reposicionamento lateral sem mover o paciente manualmente, com retorno lento ao neutro.',
     costLever: 'Usa a mesma bomba das câmaras superiores, direcionada por válvulas solenoides — sem um segundo sistema de acionamento.',
-    limitations: 'Estabilidade, deslizamento e cisalhamento no quadril e na região lombar precisam de ensaio. Não indicado para todos: com fratura espinhal instável ou tração cervical não se deve lateralizar. Complementa, não substitui, a enfermagem.',
+    limitations: 'Estabilidade sobre o colchão existente, deslizamento e cisalhamento no quadril e na região lombar precisam de ensaio. Não indicado para todos: com fratura espinhal instável ou tração cervical não se deve lateralizar. Complementa, não substitui, a enfermagem.',
     status: 'simulated',
   },
   foam: {
-    title: 'Espuma estrutural',
-    fn: 'Base de espuma de poliuretano de alta densidade (ref. RG70) em formato "U", que aloja as câmaras e dá forma ao conjunto.',
-    importance: 'Estrutura híbrida: a espuma dá a sustentação fixa e só parte do colchão precisa ser inflável. Com o design célula-sobre-célula, mantém apoio mesmo se o ar faltar.',
-    costLever: 'Blocos de densidade padrão de mercado, cortados em módulos, sem moldagem sob medida.',
-    limitations: 'Compressão permanente ao longo do tempo e inflamabilidade ainda precisam ser avaliadas; capacidade de ≈ 200 kg é meta de projeto, não valor ensaiado.',
+    title: 'Manta-base de fixação',
+    fn: 'Base fina que sustenta as câmaras e se fixa ao colchão existente do leito por alças.',
+    importance: 'Mantém o conjunto alinhado e estável sobre o leito. Se o ar faltar, o design célula-sobre-célula retém parte do volume e o colchão existente permanece como apoio passivo.',
+    costLever: 'Dispensa a espuma estrutural principal, porque o leito já tem colchão: menos material, conjunto mais leve e transportável.',
+    limitations: 'O desempenho depende do estado e da densidade do colchão existente; com pressão baixa demais nas câmaras o paciente pode afundar até o colchão; fixação e deslizamento ainda precisam de ensaio. Capacidade de ≈ 200 kg é meta de projeto, não valor ensaiado.',
     status: 'proposed',
   },
   pneumatic: {
@@ -149,11 +149,11 @@ export const FAULT_COPY: Record<FaultType, FaultCopy> = {
     label: 'Bomba indisponível',
     title: 'Bomba indisponível (simulado)',
     message:
-      'O controlador não detecta resposta da bomba. As válvulas fecharam (modo seguro) e o design célula-sobre-célula, com a espuma estrutural, mantém o colchão parcialmente inflado enquanto a equipe é alertada.',
+      'O controlador não detecta resposta da bomba. As válvulas fecharam (modo seguro) e o design célula-sobre-célula mantém o sobrecolchão parcialmente inflado, com o colchão existente como apoio passivo, enquanto a equipe é alertada.',
     safeState: [
       'Alternância suspensa',
       'Válvulas fechadas para reter o ar',
-      'Suporte passivo célula-sobre-célula e espuma',
+      'Suporte passivo célula-sobre-célula e colchão existente',
       'Inclinação retornada ao centro',
       'Alerta local à equipe',
     ],
@@ -192,7 +192,7 @@ export const SIMULATOR = {
   heatmapDisclaimer:
     'Este é um modelo demonstrativo simplificado. Uma redução da carga estimada em uma região não significa que o risco de lesão foi clinicamente eliminado.',
   faultNotice: 'Demonstração conceitual — não demonstra segurança clínica.',
-  pointLoadHint: 'Clique no colchão 3D ou no mapa para aplicar uma carga pontual.',
+  pointLoadHint: 'Clique no sobrecolchão 3D ou no mapa para aplicar uma carga pontual.',
   pointLoadNotice: 'Carga pontual ilustrativa — não representa medição de paciente.',
   modes: [
     { id: 'static', label: 'Pressão estática' },
@@ -207,7 +207,7 @@ export const COMPARISON = {
   intro:
     'Sistemas hospitalares de pressão alternada já existem, inclusive modelos com assistência à inclinação lateral. O PressuSense Air não afirma superioridade sobre eles: propõe investigar, na mesma categoria, uma arquitetura mais simples, modular e economicamente acessível.',
   category:
-    'Como referência de categoria, sistemas híbridos comerciais combinam espuma de alta densidade com câmaras de PU, unidade de controle digital com ajuste por peso, alternância automática, lateralização automática e design célula-sobre-célula.',
+    'Como referência de categoria, sistemas comerciais de pressão alternada combinam câmaras de PU com unidade de controle digital com ajuste por peso, alternância automática, lateralização automática e design célula-sobre-célula; há modelos em formato de colchão completo e de sobrecolchão.',
   referenceLabel: 'Referência tecnológica da categoria: sistemas de pressão alternada Stiegelmeyer/Novacare',
   referenceUrl: 'https://www.stiegelmeyer.com/br/hospital/colchoes/sistemas-de-pressao-alternada/',
   note: 'Sem preços, imagens ou design industrial de terceiros. A comparação é de categoria, não de produto.',
@@ -221,6 +221,12 @@ export interface ComparisonRow {
 }
 
 export const COMPARISON_ROWS: ComparisonRow[] = [
+  {
+    feature: 'Formato',
+    existing: 'Varia: colchão completo ou sobrecolchão, conforme fabricante e modelo',
+    pressusense: 'Sobrecolchão sobre o colchão do leito (kit manta + controlador)',
+    status: 'proposed',
+  },
   {
     feature: 'Pressão alternada',
     existing: 'Disponível na categoria comercial',
@@ -236,7 +242,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     feature: 'Arquitetura modular',
     existing: 'Varia conforme fabricante e modelo',
-    pressusense: 'Poucas zonas infláveis independentes e espuma em módulos; possível kit "sobrecolchão + controlador" sobre camas padrão.',
+    pressusense: 'Poucas zonas infláveis independentes em uma manta fina; kit "sobrecolchão + controlador" que aproveita o colchão já existente no leito.',
     status: 'proposed',
   },
   {
@@ -260,7 +266,7 @@ export const COMPARISON_ROWS: ComparisonRow[] = [
   {
     feature: 'Investigação de menor custo de fabricação',
     existing: 'Não se aplica — direcionamento de pesquisa',
-    pressusense: 'Bomba 12 V, válvulas solenoides e microcontrolador de prateleira; o custo real depende de protótipo e orçamento completos.',
+    pressusense: 'Sem espuma estrutural própria; bomba 12 V, válvulas solenoides e microcontrolador de prateleira. O custo real depende de protótipo e orçamento completos.',
     status: 'validation',
   },
   {
@@ -339,18 +345,19 @@ export const PROTOTYPE_BOM = {
     { item: 'Microcontrolador (ESP32)', qty: '1', cost: 30 },
     { item: 'Bomba de ar DC 12 V', qty: '1', cost: 100 },
     { item: 'Válvulas solenoides', qty: '3', cost: 150 },
-    { item: 'Espuma base', qty: '1', cost: 200 },
-    { item: 'Capa em PU', qty: '1', cost: 100 },
+    { item: 'Câmaras de ar (TPU/PVC) e manta', qty: '1', cost: null },
+    { item: 'Capa resistente em PU', qty: '1', cost: 100 },
     { item: 'Eletrônica e cabos', qty: '—', cost: 50 },
   ],
-  total: 630,
+  total: 430,
+  totalSuffix: '+ câmaras (a orçar)',
 }
 
 export const REGULATORY = [
   'ANVISA: dispositivo médico (classe a definir), registro conforme RDC 751/2022 — a avaliar',
   'IEC 60601-1 (segurança elétrica) — a avaliar',
   'ISO 14971 (gestão de risco) — a avaliar',
-  'ISO 10993 (biocompatibilidade de capa e espuma) — a avaliar',
+  'ISO 10993 (biocompatibilidade da capa e das câmaras) — a avaliar',
   'Retardância ao fogo dos materiais — requisito de projeto',
 ]
 
@@ -359,6 +366,8 @@ export const LIMITATIONS = [
   'Não é indicado para todos: pacientes com fratura espinhal instável ou em tração cervical não devem ser lateralizados.',
   'Inflar demais um lado pode gerar cisalhamento; pressão baixa demais deixa o corpo afundar e alta demais cria novos pontos de pressão — daí a necessidade de calibração e modo seguro.',
   'Ruído da bomba e limite de peso (meta de projeto ≈ 200 kg) ainda precisam ser medidos.',
+  'Necessita de cobertura resistente: a capa protege câmaras finas contra abrasão, perfuração e fluidos.',
+  'Deve distribuir a pressão ao longo de todo o corpo; o desempenho depende do colchão existente no leito.',
 ]
 
 export const IMPACT = {
@@ -381,11 +390,11 @@ export const IMPACT_POINTS = [
   },
   {
     title: 'Manutenção por módulos substituíveis',
-    text: 'Câmaras idênticas, engates rápidos e componentes de prateleira podem reduzir o custo de manutenção — hipótese a ser verificada em protótipo.',
+    text: 'Câmaras idênticas, engates rápidos e componentes de prateleira podem reduzir o custo de manutenção, e o sobrecolchão aproveita o colchão já existente no leito — hipótese a ser verificada em protótipo.',
   },
   {
     title: 'Hospitais públicos',
-    text: 'A arquitetura é estudada pensando em aplicação futura em hospitais públicos e na atenção domiciliar, mediante validação e autorizações aplicáveis.',
+    text: 'Mais leve e transportável que um colchão completo, o sobrecolchão é estudado pensando em aplicação futura em hospitais públicos e na atenção domiciliar, mediante validação e autorizações aplicáveis.',
   },
 ]
 
@@ -410,21 +419,21 @@ export const CRITERIA: Criterion[] = [
     name: 'Impacto em Saúde',
     weight: 20,
     approach:
-      'Propõe ampliar o acesso a superfícies com redistribuição de pressão em serviços com orçamento restrito, como apoio à enfermagem.',
+      'Propõe ampliar o acesso a superfícies com redistribuição de pressão em serviços com orçamento restrito, com um sobrecolchão que aproveita o leito existente, como apoio à enfermagem.',
     status: 'validation',
   },
   {
     name: 'Inovação',
     weight: 20,
     approach:
-      'Combina pressão alternada e inclinação lateral assistida com hardware genérico, design modular e segurança passiva célula-sobre-célula, usando uma só bomba.',
+      'Combina pressão alternada e inclinação lateral assistida em um sobrecolchão, com hardware genérico, design modular e segurança passiva célula-sobre-célula, usando uma só bomba.',
     status: 'proposed',
   },
   {
     name: 'Modelo de Negócio',
     weight: 20,
     approach:
-      'Explora menor custo de fabricação e manutenção por módulos, com um cenário econômico exploratório e editável.',
+      'Explora menor custo de fabricação (sem espuma estrutural própria) e manutenção por módulos, com um cenário econômico exploratório e editável.',
     status: 'simulated',
   },
   {

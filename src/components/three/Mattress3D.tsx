@@ -9,9 +9,9 @@ import type { LayerId } from '../../lib/simulationEngine'
 type Vec3 = [number, number, number]
 
 const CAMERAS: Record<Variant, { position: Vec3; target: Vec3; fov: number; aspect: number }> = {
-  hero: { position: [3.05, 1.85, 2.7], target: [0.25, 0.02, 0], fov: 30, aspect: 1.65 },
-  simulator: { position: [2.75, 1.95, 1.8], target: [0.25, 0.12, 0], fov: 30, aspect: 1.9 },
-  explorer: { position: [3.9, 3.2, 4.0], target: [0.3, 0.62, 0], fov: 32, aspect: 0.85 },
+  hero: { position: [3.0, 1.75, 2.75], target: [0.12, 0.22, 0], fov: 30, aspect: 1.65 },
+  simulator: { position: [1.95, 1.6, 2.45], target: [0.08, 0.24, 0], fov: 30, aspect: 1.9 },
+  explorer: { position: [3.6, 2.8, 3.7], target: [0.25, 0.62, 0], fov: 32, aspect: 0.85 },
 }
 
 export interface Mattress3DProps {

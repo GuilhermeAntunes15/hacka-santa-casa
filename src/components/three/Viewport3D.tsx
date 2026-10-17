@@ -27,9 +27,9 @@ const ZOOM_MAX = 1.8
 const ZOOM_STEP = 0.2
 
 const LABELS: Record<Viewport3DProps['variant'], string> = {
-  hero: 'Modelo 3D do colchão PressuSense Air montado em camadas: base, câmaras de inclinação, espuma, câmaras de ar, tubulações, sensores e controlador.',
-  simulator: 'Modelo 3D do simulador: câmaras de ar mudando de volume conforme o modo selecionado, com cargas artificiais sobre a superfície. Clique na superfície para aplicar uma carga pontual ilustrativa; o mapa de carga oferece alternativa por teclado.',
-  explorer: 'Modelo 3D do explorador de engenharia, com as sete camadas do colchão selecionáveis.',
+  hero: 'Modelo 3D do sobrecolchão PressuSense Air instalado sobre o colchão existente do leito: manta-base de fixação, câmaras de inclinação, células de ar, tubulações, sensores, capa e controlador pendurado na pezeira.',
+  simulator: 'Modelo 3D do simulador: sobrecolchão sobre o colchão existente, com as células de ar mudando de volume conforme o modo selecionado e cargas artificiais sobre a superfície. Clique na superfície do sobrecolchão para aplicar uma carga pontual ilustrativa; o mapa de carga oferece alternativa por teclado.',
+  explorer: 'Modelo 3D do explorador de engenharia, com as sete camadas do sobrecolchão selecionáveis; o colchão existente do leito aparece apenas como contexto.',
 }
 
 class GLBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {

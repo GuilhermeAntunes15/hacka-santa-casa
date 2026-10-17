@@ -1,7 +1,8 @@
 # PressuSense Air — simulador digital de engenharia (HackaSanta 2026)
 
-Aplicação web estática que representa o conceito do **PressuSense Air**, um colchão hospitalar híbrido de baixo custo com
-pressão alternada (grupos A/B) e assistência ao reposicionamento lateral.
+Aplicação web estática que representa o conceito do **PressuSense Air**, um sobrecolchão pneumático de baixo custo, instalado
+sobre o colchão hospitalar existente do leito (kit sobrecolchão + controlador), com pressão alternada (grupos A/B)
+e assistência ao reposicionamento lateral.
 
 > **Aviso:** é uma simulação digital de engenharia. Não é dispositivo médico validado, não tem eficácia clínica
 > demonstrada e todos os valores são relativos e ilustrativos (u.a.).

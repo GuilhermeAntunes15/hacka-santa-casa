@@ -15,7 +15,7 @@ const rise = (i: number) => ({
 const CALLOUTS = [
   { k: 'A', title: 'Camada superior', text: 'Pressão alternada · células transversais A/B', pos: 'lg:top-4 lg:left-4' },
   { k: 'B', title: 'Camada inferior', text: 'Reposicionamento lateral · câmaras longitudinais', pos: 'lg:right-4 lg:bottom-16' },
-  { k: 'C', title: 'Estrutura híbrida', text: 'Espuma de alta densidade em “U” + ar', pos: 'lg:bottom-16 lg:left-4' },
+  { k: 'C', title: 'Instala sobre o colchão existente', text: 'Manta fina fixada ao colchão do leito; dispensa trocar a superfície inteira.', pos: 'lg:bottom-16 lg:left-4' },
   { k: 'D', title: 'Controle pneumático', text: 'Bomba 12 V, válvulas e microcontrolador', pos: 'lg:top-4 lg:right-4' },
 ]
 

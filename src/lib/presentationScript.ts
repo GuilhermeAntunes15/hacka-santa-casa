@@ -29,7 +29,7 @@ export const STEPS: DemoStep[] = [
     end: 30,
     talkingPoints: [
       'Pacientes com mobilidade reduzida têm risco de lesões por pressão, com sofrimento, complicações e custos assistenciais.',
-      'PressuSense Air: conceito de colchão híbrido de baixo custo — espuma de alta densidade com câmaras de ar controladas.',
+      'PressuSense Air: conceito de sobrecolchão pneumático de baixo custo, que vai sobre o colchão do leito, com câmaras de ar controladas.',
       'Este site é uma simulação digital de engenharia, não um dispositivo médico validado.',
     ],
     cues: [{ at: 0, run: () => scrollToId('inicio') }],
@@ -42,7 +42,7 @@ export const STEPS: DemoStep[] = [
       'Dois grupos de câmaras, A e B, alternam entre sustentar e aliviar a carga.',
       'O mapa de carga e os gráficos acompanham o mesmo estado do modelo 3D.',
       'O ciclo foi comprimido para a demonstração; os valores são relativos (u.a.).',
-      'Clique em qualquer parte do colchão ou do mapa para simular uma carga pontual.',
+      'Clique em qualquer parte do sobrecolchão ou do mapa para simular uma carga pontual.',
     ],
     cues: [
       {
@@ -83,6 +83,7 @@ export const STEPS: DemoStep[] = [
     start: 120,
     end: 150,
     talkingPoints: [
+      'Kit sobrecolchão + controlador: o sobrecolchão vai sobre o colchão do leito e dispensa a espuma estrutural própria.',
       'Hardware genérico: microcontrolador comum, bomba 12 V e válvulas solenoides de prateleira.',
       'Zonas modulares e eletrônica plugável permitem substituição local de componentes.',
       'O cenário econômico é exploratório e editável — não é preço do produto.',
