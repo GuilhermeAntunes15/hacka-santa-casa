@@ -15,6 +15,12 @@ export interface FaultState {
   safe: boolean
 }
 
+export interface PointLoad {
+  r: number
+  c: number
+  intensity: number
+}
+
 export interface SimState {
   mode: SimMode
   playing: boolean
@@ -26,6 +32,7 @@ export interface SimState {
   tilt: number
   tiltTarget: number
   fault: FaultState | null
+  point: PointLoad | null
   matrix: number[]
 }
 
@@ -57,6 +64,7 @@ export interface Telemetry {
   side: { left: number; right: number }
   subsystems: Record<SubsystemId, Health>
   history: HistorySample[]
+  pointPeak: number | null
 }
 
 export const N_UPPER = 16
@@ -77,6 +85,10 @@ export const TELEMETRY_INTERVAL = 0.1
 export const LEAK_CHAMBER = 6
 export const DT_MAX = 0.1
 export const TILT_GAIN = 1.4
+export const POINT_MIN = 0.2
+export const POINT_MAX = 1.2
+export const POINT_DEFAULT = 0.6
+export const POINT_SIGMA = 0.8
 
 const SAFE_AFTER: Record<FaultType, number> = { leak: 2.5, overpressure: 2.2, pump: 1.0, sensor: 1.0 }
 const OVERPRESSURE_SECONDS = 1.2
@@ -154,7 +166,18 @@ const BODY: number[] = Array.from({ length: ROWS * COLS }, (_, idx) => {
   return v
 })
 
-export function computeLoadMatrix(upper: number[], tilt: number): number[] {
+export function makePointLoad(r: number, c: number, intensity = POINT_DEFAULT): PointLoad {
+  const int = (v: number, max: number) => clamp(Math.floor(Number.isFinite(v) ? v : 0), 0, max)
+  return {
+    r: int(r, ROWS - 1),
+    c: int(c, COLS - 1),
+    intensity: clamp(Number.isFinite(intensity) ? intensity : POINT_DEFAULT, POINT_MIN, POINT_MAX),
+  }
+}
+
+export const pointBump = (d: number) => Math.exp(-0.5 * (d / POINT_SIGMA) ** 2)
+
+export function computeLoadMatrix(upper: number[], tilt: number, point: PointLoad | null = null): number[] {
   const s = upper.map((u) => Math.max(u, 0.05))
   const rowFactor = s.map((v, r) => {
     let sum = 0
@@ -167,7 +190,12 @@ export function computeLoadMatrix(upper: number[], tilt: number): number[] {
   })
   const sinT = Math.sin((tilt * Math.PI) / 180)
   const colFactor = Array.from({ length: COLS }, (_, c) => Math.max(0.05, 1 + TILT_GAIN * sinT * ((c - 3.5) / 3.5)))
-  return BODY.map((b, idx) => clamp((b * rowFactor[Math.floor(idx / COLS)] * colFactor[idx % COLS]) / 1.6, 0, 1))
+  return BODY.map((b, idx) => {
+    const r = Math.floor(idx / COLS)
+    const c = idx % COLS
+    const bump = point ? point.intensity * pointBump(r - point.r) * pointBump(c - point.c) : 0
+    return clamp(((b + bump) * rowFactor[r] * colFactor[c]) / 1.6, 0, 1)
+  })
 }
 
 export const REFERENCE_MATRIX: number[] = computeLoadMatrix(Array<number>(N_UPPER).fill(REF), 0)
@@ -179,6 +207,8 @@ const REGIONS: { id: RegionId; label: string; from: number; to: number }[] = [
   { id: 'thighs', label: 'Coxas', from: 10, to: 12 },
   { id: 'heels', label: 'Calcanhares', from: 13, to: 15 },
 ]
+
+export const regionAt = (r: number): string => (REGIONS.find((g) => r >= g.from && r <= g.to) ?? REGIONS[0]).label
 
 export function regionLoads(matrix: number[]): RegionLoad[] {
   const total = matrix.reduce((a, b) => a + b, 0) || 1
@@ -241,6 +271,7 @@ export function createInitialSim(): SimState {
     tilt: 0,
     tiltTarget: 0,
     fault: null,
+    point: null,
     matrix: REFERENCE_MATRIX,
   }
 }
@@ -292,7 +323,7 @@ export function tick(s: SimState, dtReal: number): SimState {
     fault,
     upper,
     lower: lowerTargets(tilt),
-    matrix: fault?.type === 'sensor' ? s.matrix : computeLoadMatrix(upper, tilt),
+    matrix: fault?.type === 'sensor' ? s.matrix : computeLoadMatrix(upper, tilt, s.point),
   }
 }
 
@@ -327,5 +358,6 @@ export function buildTelemetry(s: SimState, history: HistorySample[]): Telemetry
     side: sideShare(s.matrix),
     subsystems: subsystemHealth(s.fault),
     history,
+    pointPeak: s.point ? pct(s.matrix[s.point.r * COLS + s.point.c]) : null,
   }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
+import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useSimulationStore } from '../../store/simulationStore'
-import { COLS, ROWS } from '../../lib/simulationEngine'
+import { COLS, POINT_DEFAULT, POINT_MAX, POINT_MIN, ROWS, regionAt } from '../../lib/simulationEngine'
 import type { RegionLoad } from '../../lib/simulationEngine'
 import { SIMULATOR } from '../../lib/content'
 import { formatDecimal } from '../../lib/format'
@@ -49,7 +50,18 @@ const GRADIENT = 'linear-gradient(to right, #1E40AF, #23D5E7 33%, #FACC15 66%, #
 const summary = (regions: RegionLoad[]) =>
   'Mapa ilustrativo de carga estimada. ' + regions.map((r) => `${r.label}: ${formatDecimal(r.share)}%`).join('; ')
 
-function HeatCanvas({ live, matrix, label }: { live?: boolean; matrix?: number[]; label: string }) {
+const KEY_STEP: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+}
+
+const CENTER = { r: 7, c: 3 }
+
+type Cell = { r: number; c: number }
+
+function HeatCanvas({ live, matrix, label, point }: { live?: boolean; matrix?: number[]; label: string; point?: Cell | null }) {
   const ref = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -64,6 +76,37 @@ function HeatCanvas({ live, matrix, label }: { live?: boolean; matrix?: number[]
     if (matrix) draw(ref.current, matrix)
   }, [matrix])
 
+  const a = useSimulationStore.getState
+
+  const onClick = (e: MouseEvent) => {
+    const rect = ref.current?.getBoundingClientRect()
+    if (!rect || !rect.width || !rect.height) return
+    a().setPointLoad(((e.clientX - rect.left) / rect.width) * ROWS, ((e.clientY - rect.top) / rect.height) * COLS)
+  }
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    const step = KEY_STEP[e.key]
+    if (step) a().setPointLoad((point ?? CENTER).r + step[0], (point ?? CENTER).c + step[1])
+    else if (e.key === 'Enter') {
+      if (!point) a().setPointLoad(CENTER.r, CENTER.c)
+    } else if (e.key === 'Delete' || e.key === 'Backspace') a().clearPointLoad()
+    else return
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const canvas = (
+    <canvas
+      ref={ref}
+      width={ROWS}
+      height={COLS}
+      role="img"
+      aria-label={label}
+      className="block h-28 w-full rounded-[3px] outline outline-1 -outline-offset-1 outline-white/10 sm:h-32"
+      style={{ imageRendering: 'auto' }}
+    />
+  )
+
   return (
     <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5 gap-y-1">
       <span />
@@ -75,15 +118,29 @@ function HeatCanvas({ live, matrix, label }: { live?: boolean; matrix?: number[]
         <span>E</span>
         <span>D</span>
       </div>
-      <canvas
-        ref={ref}
-        width={ROWS}
-        height={COLS}
-        role="img"
-        aria-label={label}
-        className="block h-28 w-full rounded-[3px] outline outline-1 -outline-offset-1 outline-white/10 sm:h-32"
-        style={{ imageRendering: 'auto' }}
-      />
+      {live ? (
+        <div
+          data-testid="heatmap-surface"
+          tabIndex={0}
+          role="application"
+          aria-label="Mapa interativo de carga: clique ou use as setas para posicionar a carga pontual; Enter aplica; Delete remove"
+          className="relative cursor-crosshair rounded-[3px]"
+          onClick={onClick}
+          onKeyDown={onKeyDown}
+        >
+          {canvas}
+          {point && (
+            <span
+              data-testid="heatmap-point-marker"
+              aria-hidden
+              className="pointer-events-none absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.6),0_0_8px_rgba(0,0,0,0.5)]"
+              style={{ left: `${((point.r + 0.5) / ROWS) * 100}%`, top: `${((point.c + 0.5) / COLS) * 100}%` }}
+            />
+          )}
+        </div>
+      ) : (
+        canvas
+      )}
       <span />
       {/* marcas das 16 câmaras transversais (linha i = câmara i) */}
       <div aria-hidden className="flex justify-between px-[3%]">
@@ -96,15 +153,21 @@ function HeatCanvas({ live, matrix, label }: { live?: boolean; matrix?: number[]
 }
 
 export default function PressureHeatmap() {
-  const { regions, side, compare, baseline, sensorFault } = useSimulationStore(
+  const { regions, side, compare, baseline, sensorFault, pointR, pointC, intensity, pointPeak } = useSimulationStore(
     useShallow((s) => ({
       regions: s.telemetry.regions,
       side: s.telemetry.side,
       compare: s.compare,
       baseline: s.baseline,
       sensorFault: s.sim.fault?.type === 'sensor',
+      pointR: s.sim.point?.r ?? null,
+      pointC: s.sim.point?.c ?? null,
+      intensity: s.sim.point?.intensity ?? null,
+      pointPeak: s.telemetry.pointPeak,
     })),
   )
+  const point = pointR !== null && pointC !== null ? { r: pointR, c: pointC } : null
+  const pct = Math.round((intensity ?? POINT_DEFAULT) * 100)
   const peak = Math.max(...regions.map((r) => r.peak))
   const a = useSimulationStore.getState
   const small = 'min-h-10 rounded-md border px-2.5 text-xs transition-colors'
@@ -115,6 +178,8 @@ export default function PressureHeatmap() {
       data-side-left={side.left.toFixed(1)}
       data-side-right={side.right.toFixed(1)}
       data-peak={peak.toFixed(3)}
+      data-point-r={pointR ?? undefined}
+      data-point-c={pointC ?? undefined}
       className="space-y-3"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -146,7 +211,7 @@ export default function PressureHeatmap() {
             </p>
           )}
           <div className="relative">
-            <HeatCanvas live label={summary(regions)} />
+            <HeatCanvas live label={summary(regions)} point={point} />
             {sensorFault && (
               <div className="absolute inset-0 grid place-items-center rounded-[3px] bg-bg/70 p-2 text-center text-xs font-medium text-warn">
                 S4 sem comunicação — exibindo último valor válido
@@ -186,6 +251,40 @@ export default function PressureHeatmap() {
           <li className="text-right">Mais elevada</li>
         </ul>
       </div>
+      <fieldset className="space-y-2">
+        <legend className="label-mono mb-2 !text-[10px]">Carga pontual</legend>
+        <p data-testid="point-load-label" data-active={String(!!point)} className={`text-xs ${point ? 'num text-fg' : 'text-muted'}`}>
+          {point
+            ? `Carga pontual em: ${regionAt(point.r)} · lado ${point.c < COLS / 2 ? 'E' : 'D'} · pico local ${pointPeak ?? '—'} u.a.`
+            : SIMULATOR.pointLoadHint}
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            data-testid="point-load-intensity"
+            aria-label="Intensidade da carga pontual"
+            min={POINT_MIN * 100}
+            max={POINT_MAX * 100}
+            step={10}
+            value={pct}
+            disabled={!point}
+            onChange={(e) => a().setPointIntensity(Number(e.target.value) / 100)}
+            className="min-w-0 flex-1 disabled:opacity-35"
+            style={{ '--fill': `${((pct - POINT_MIN * 100) / ((POINT_MAX - POINT_MIN) * 100)) * 100}%` } as CSSProperties}
+          />
+          <span className="num w-14 shrink-0 text-right text-xs text-fg">{pct} u.a.</span>
+          <button
+            type="button"
+            data-testid="point-load-clear"
+            disabled={!point}
+            className={`${small} shrink-0 border-line hover:border-tech/70 hover:bg-tech/10 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-line disabled:hover:bg-transparent`}
+            onClick={() => a().clearPointLoad()}
+          >
+            Remover carga pontual
+          </button>
+        </div>
+        <Disclaimer>{SIMULATOR.pointLoadNotice}</Disclaimer>
+      </fieldset>
       <Disclaimer>{SIMULATOR.heatmapDisclaimer}</Disclaimer>
     </figure>
   )

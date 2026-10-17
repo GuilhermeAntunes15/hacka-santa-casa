@@ -5,7 +5,7 @@ import { Edges, RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { useSimulationStore } from '../../store/simulationStore'
-import { LEAK_CHAMBER, N_UPPER, REF, currentActiveGroup, groupOf } from '../../lib/simulationEngine'
+import { COLS, LEAK_CHAMBER, N_UPPER, POINT_MAX, REF, ROWS, currentActiveGroup, groupOf, pointBump } from '../../lib/simulationEngine'
 import type { FaultType, Group, LayerId } from '../../lib/simulationEngine'
 
 export type Variant = 'hero' | 'simulator' | 'explorer'
@@ -31,6 +31,8 @@ const LOOK = {
   loadEdge: '#D8F6FB',
   loadOpacity: 0.4,
   accent: '#23D5E7',
+  pointMarker: '#23D5E7',
+  pointSquash: 0.35,
   danger: '#EF4444',
   dimOpacity: 0.3,
   activePulse: 0.35,
@@ -237,6 +239,9 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
   const tiltR = useRef<THREE.Mesh>(null)
   const chambers = useRef<(THREE.Mesh | null)[]>([])
   const loads = useRef<(THREE.Mesh | null)[]>([])
+  const marker = useRef<THREE.Group>(null)
+  const markerCone = useRef<THREE.Mesh>(null)
+  const uVis = useRef<number[]>(REF_UPPER.slice())
   const groups = useRef<Partial<Record<LayerKey, THREE.Group>>>({})
   const t0 = useRef(-1)
   const explode = useRef(exploded ? 1 : 0)
@@ -263,6 +268,19 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       fault = st.sim.fault?.type ?? null
       active = currentActiveGroup(st.sim)
       showGroups = st.showGroups
+      const point = st.sim.point
+      if (point) {
+        const k = LOOK.pointSquash * (point.intensity / POINT_MAX)
+        for (let i = 0; i < N_UPPER; i++) uVis.current[i] = upper[i] * (1 - k * pointBump(i - point.r))
+        upper = uVis.current
+      }
+      if (marker.current) {
+        marker.current.visible = !!point
+        if (point) {
+          marker.current.position.set(chamberX(point.r), FOAM_TOP + 2 * cellRy(upper[point.r]), -CELL_SPAN / 2 + ((point.c + 0.5) * CELL_SPAN) / COLS)
+          markerCone.current?.scale.setScalar(0.6 + (0.4 * point.intensity) / POINT_MAX)
+        }
+      }
     }
 
     explode.current = reducedMotion
@@ -353,6 +371,21 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       })
     }
   })
+
+  const placePoint = {
+    onClick: (e: ThreeEvent<MouseEvent>) => {
+      if (e.delta > 5 || !e.uv) return
+      e.stopPropagation()
+      useSimulationStore.getState().setPointLoad(e.uv.x * ROWS, (1 - e.uv.y) * COLS)
+    },
+    onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+      e.stopPropagation()
+      document.body.style.cursor = 'crosshair'
+    },
+    onPointerOut: () => {
+      document.body.style.cursor = ''
+    },
+  }
 
   const pick = (id: LayerId) =>
     onSelectLayer
@@ -450,6 +483,27 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
                 <Edges color={LOOK.loadEdge} threshold={15} transparent opacity={0.7} />
               </mesh>
             ))}
+
+          {variant === 'simulator' && (
+            <>
+              <mesh rotation-x={-Math.PI / 2} position={[0, FOAM_TOP + 2 * cellRy(REF), 0]} {...placePoint}>
+                <planeGeometry args={[N_UPPER * PITCH, CELL_SPAN]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+              </mesh>
+              <group ref={marker} visible={false}>
+                <mesh rotation-x={-Math.PI / 2} position-y={0.004} renderOrder={2}>
+                  <ringGeometry args={[0.035, 0.05, 32]} />
+                  <meshBasicMaterial color={LOOK.pointMarker} depthTest={false} transparent />
+                </mesh>
+                <group position-y={0.1}>
+                  <mesh ref={markerCone} rotation-x={Math.PI}>
+                    <coneGeometry args={[0.03, 0.12, 16]} />
+                    <meshBasicMaterial color={LOOK.pointMarker} />
+                  </mesh>
+                </group>
+              </group>
+            </>
+          )}
 
           {variant !== 'simulator' && (
             <group ref={setGroup('cover')} {...pick('cover')}>

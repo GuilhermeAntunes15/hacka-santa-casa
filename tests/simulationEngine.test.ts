@@ -2,11 +2,22 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   COLS,
+  HIGH,
   LEAK_CHAMBER,
+  LOW,
+  N_UPPER,
+  POINT_DEFAULT,
+  POINT_MAX,
   REF,
+  REFERENCE_MATRIX,
   ROWS,
   alternatingLevel,
+  buildTelemetry,
+  computeLoadMatrix,
   createInitialSim,
+  groupOf,
+  makePointLoad,
+  regionAt,
   sideShare,
   tick,
 } from '../src/lib/simulationEngine.ts'
@@ -95,4 +106,66 @@ test('matriz de referência é simétrica', () => {
       assert.ok(Math.abs(m[r * COLS + c] - m[r * COLS + (COLS - 1 - c)]) < 1e-9)
     }
   }
+})
+
+const REF_UPPER = Array<number>(N_UPPER).fill(REF)
+
+test('carga pontual: null mantém referência; ponto eleva só a vizinhança', () => {
+  assert.deepEqual(computeLoadMatrix(REF_UPPER, 0, null), REFERENCE_MATRIX)
+  const m = computeLoadMatrix(REF_UPPER, 0, { r: 7, c: 3, intensity: 0.6 })
+  assert.equal(m.length, 128)
+  for (const v of m) assert.ok(v >= 0 && v <= 1)
+  assert.ok(m[7 * COLS + 3] > REFERENCE_MATRIX[7 * COLS + 3])
+  for (let r = 0; r < ROWS; r++) {
+    if (Math.abs(r - 7) < 5) continue
+    for (let c = 0; c < COLS; c++) assert.ok(Math.abs(m[r * COLS + c] - REFERENCE_MATRIX[r * COLS + c]) < 1e-6)
+  }
+})
+
+test('carga pontual interage com o alternado', () => {
+  const upA = Array.from({ length: N_UPPER }, (_, i) => (groupOf(i) === 'A' ? HIGH : LOW))
+  const upB = Array.from({ length: N_UPPER }, (_, i) => (groupOf(i) === 'A' ? LOW : HIGH))
+  const p = { r: 7, c: 1, intensity: 0.5 }
+  assert.ok(computeLoadMatrix(upB, 0, p)[7 * COLS + 1] > computeLoadMatrix(upA, 0, p)[7 * COLS + 1] + 0.05)
+})
+
+test('carga pontual interage com a lateral', () => {
+  const d = { r: 12, c: 6, intensity: 0.5 }
+  const e = { r: 12, c: 1, intensity: 0.5 }
+  assert.ok(computeLoadMatrix(REF_UPPER, 15, d)[12 * COLS + 6] > computeLoadMatrix(REF_UPPER, -15, d)[12 * COLS + 6])
+  assert.ok(computeLoadMatrix(REF_UPPER, -15, e)[12 * COLS + 1] > computeLoadMatrix(REF_UPPER, 15, e)[12 * COLS + 1])
+})
+
+test('tick preserva a carga pontual', () => {
+  const point = { r: 7, c: 3, intensity: 0.6 }
+  const s = run({ ...createInitialSim(), point }, 1)
+  assert.deepEqual(s.point, point)
+  assert.ok(s.matrix[7 * COLS + 3] > REFERENCE_MATRIX[7 * COLS + 3])
+  assert.deepEqual(run(createInitialSim(), 1).matrix, REFERENCE_MATRIX)
+})
+
+test('makePointLoad normaliza entradas', () => {
+  assert.deepEqual(makePointLoad(-3, 99, 5), { r: 0, c: 7, intensity: POINT_MAX })
+  assert.deepEqual(makePointLoad(NaN, 3.9, NaN), { r: 0, c: 3, intensity: POINT_DEFAULT })
+  const p = makePointLoad(15.99, 7.99)
+  assert.equal(p.r, 15)
+  assert.equal(p.c, 7)
+})
+
+test('falha de sensor congela a matriz mesmo com carga pontual', () => {
+  const start = {
+    ...createInitialSim(),
+    mode: 'fault' as const,
+    point: { r: 7, c: 3, intensity: 0.6 },
+    fault: { type: 'sensor' as const, elapsed: 0, safe: false },
+  }
+  assert.equal(tick(start, 0.05).matrix, start.matrix)
+})
+
+test('telemetria expõe pico local e regionAt mapeia regiões', () => {
+  assert.equal(buildTelemetry(createInitialSim(), []).pointPeak, null)
+  const s = run({ ...createInitialSim(), point: { r: 7, c: 3, intensity: 0.6 } }, 0.1)
+  assert.equal(buildTelemetry(s, []).pointPeak, Math.round(s.matrix[7 * COLS + 3] * 100))
+  assert.equal(regionAt(7), 'Região sacral')
+  assert.equal(regionAt(12), 'Coxas')
 })

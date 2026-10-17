@@ -192,6 +192,8 @@ export const SIMULATOR = {
   heatmapDisclaimer:
     'Este é um modelo demonstrativo simplificado. Uma redução da carga estimada em uma região não significa que o risco de lesão foi clinicamente eliminado.',
   faultNotice: 'Demonstração conceitual — não demonstra segurança clínica.',
+  pointLoadHint: 'Clique no colchão 3D ou no mapa para aplicar uma carga pontual.',
+  pointLoadNotice: 'Carga pontual ilustrativa — não representa medição de paciente.',
   modes: [
     { id: 'static', label: 'Pressão estática' },
     { id: 'alternating', label: 'Pressão alternada' },

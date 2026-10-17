@@ -4,15 +4,17 @@ import {
   HISTORY_MAX,
   LOWER_BASE,
   MAX_TILT,
+  POINT_DEFAULT,
   REFERENCE_MATRIX,
   TELEMETRY_INTERVAL,
   buildTelemetry,
   computeLoadMatrix,
   createInitialSim,
+  makePointLoad,
   sample,
   tick,
 } from '../lib/simulationEngine'
-import type { FaultType, SimMode, SimState, Speed, Telemetry } from '../lib/simulationEngine'
+import type { FaultType, PointLoad, SimMode, SimState, Speed, Telemetry } from '../lib/simulationEngine'
 import { formatClock } from '../lib/format'
 
 export interface Baseline {
@@ -39,6 +41,9 @@ interface SimulationStore {
   toggleCompare(): void
   captureBaseline(): void
   resetBaseline(): void
+  setPointLoad(r: number, c: number): void
+  setPointIntensity(v: number): void
+  clearPointLoad(): void
 }
 
 const REFERENCE_BASELINE: Baseline = { matrix: REFERENCE_MATRIX, label: 'Referência (modo estático)' }
@@ -57,6 +62,12 @@ export const useSimulationStore = create<SimulationStore>()((set, get) => {
     fault: null,
     playing: true,
     tiltTarget: mode === 'lateral' ? sim.tiltTarget : 0,
+  })
+
+  const withPoint = (sim: SimState, point: PointLoad | null): SimState => ({
+    ...sim,
+    point,
+    matrix: sim.fault?.type === 'sensor' ? sim.matrix : computeLoadMatrix(sim.upper, sim.tilt, point),
   })
 
   return {
@@ -119,7 +130,7 @@ export const useSimulationStore = create<SimulationStore>()((set, get) => {
         tilt: 0,
         tiltTarget: 0,
         lower: [LOWER_BASE, LOWER_BASE],
-        matrix: sim.fault?.type === 'sensor' ? sim.matrix : computeLoadMatrix(sim.upper, 0),
+        matrix: sim.fault?.type === 'sensor' ? sim.matrix : computeLoadMatrix(sim.upper, 0, sim.point),
       })
     },
 
@@ -146,6 +157,21 @@ export const useSimulationStore = create<SimulationStore>()((set, get) => {
 
     resetBaseline() {
       set({ baseline: REFERENCE_BASELINE })
+    },
+
+    setPointLoad(r, c) {
+      const { sim } = get()
+      commit(withPoint(sim, makePointLoad(r, c, sim.point?.intensity ?? POINT_DEFAULT)))
+    },
+
+    setPointIntensity(v) {
+      const { sim } = get()
+      if (!sim.point) return
+      commit(withPoint(sim, makePointLoad(sim.point.r, sim.point.c, v)))
+    },
+
+    clearPointLoad() {
+      commit(withPoint(get().sim, null))
     },
   }
 })

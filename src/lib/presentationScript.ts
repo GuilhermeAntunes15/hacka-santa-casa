@@ -42,6 +42,7 @@ export const STEPS: DemoStep[] = [
       'Dois grupos de câmaras, A e B, alternam entre sustentar e aliviar a carga.',
       'O mapa de carga e os gráficos acompanham o mesmo estado do modelo 3D.',
       'O ciclo foi comprimido para a demonstração; os valores são relativos (u.a.).',
+      'Clique em qualquer parte do colchão ou do mapa para simular uma carga pontual.',
     ],
     cues: [
       {
@@ -51,6 +52,8 @@ export const STEPS: DemoStep[] = [
           sim().setMode('alternating')
         },
       },
+      { at: 14, run: () => sim().setPointLoad(7, 3) },
+      { at: 34, run: () => sim().clearPointLoad() },
     ],
   },
   {
