@@ -55,12 +55,13 @@ const LINE_Y = 0.08
 const LINE_A_Z = -0.47
 const LINE_B_Z = -0.51
 const COVER_TOP = 0.23
-const CTRL_POS = new THREE.Vector3(1.42, 0, 0)
+const CTRL_POS = new THREE.Vector3(1.32, 0, -0.08)
 const CTRL_YAW = 0.55
 
 const chamberX = (i: number) => (i - (N_UPPER - 1) / 2) * PITCH
-const cellRy = (u: number) => CELL_R * Math.max(u, 0.05)
-const cellSx = (u: number) => Math.min(1, 0.55 + 0.45 * Math.max(u, 0.05))
+const CELL_MIN = 0.25
+const cellRy = (u: number) => CELL_R * Math.max(u, CELL_MIN)
+const cellSx = (u: number) => Math.min(1, 0.55 + 0.45 * Math.max(u, CELL_MIN))
 
 type LayerKey = LayerId | 'base'
 
@@ -176,7 +177,7 @@ const ctrlLocal = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z
 function hoseCurve(k: number) {
   const port = ctrlLocal(-0.15, 0.07, k === 0 ? 0.04 : -0.04)
   const out = ctrlLocal(-0.28, 0.03, k === 0 ? 0.04 : -0.04)
-  const z = 0.26 - 0.08 * k
+  const z = 0.14 - 0.07 * k
   return new THREE.CatmullRomCurve3([new THREE.Vector3(1.0, 0.13, z), new THREE.Vector3(1.08, 0.03, z), out, port])
 }
 
@@ -311,8 +312,8 @@ export default function MattressModel({ variant, reducedMotion, selectedLayer, o
       mesh.position.y = FOAM_TOP + ry
       const m = mats.chambers[i]
       const g = groupOf(i)
-      m.color.copy(showGroups ? (g === 'A' ? C.a : C.b) : C.chamber)
       const faulty = (fault === 'leak' && i === LEAK_CHAMBER) || (fault === 'overpressure' && g === 'A')
+      m.color.copy(faulty ? C.danger : showGroups ? (g === 'A' ? C.a : C.b) : C.chamber)
       if (faulty) setEmissive(m, C.danger, faultPulse)
       else if (active === g) setEmissive(m, C.accent, LOOK.activePulse * pulse)
       else if (variant === 'explorer' && selectedLayer === 'topChambers') setEmissive(m, C.accent, LOOK.selectedEmissive)
