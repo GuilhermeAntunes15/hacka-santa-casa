@@ -9,7 +9,7 @@ export const STATUS_LABELS: Record<Status, string> = {
 }
 
 export const HERO = {
-  title: 'PressuSense Air',
+  title: 'NUVA',
   headline: 'Redistribuindo a pressão. Repensando o cuidado.',
   subtitle:
     'Um conceito de sobrecolchão pneumático inteligente e acessível, instalado sobre o colchão hospitalar existente, que combina alternância de pressão, assistência ao reposicionamento lateral e monitoramento em uma única plataforma.',
@@ -186,7 +186,7 @@ export const SUBSYSTEM_LABELS: Record<SubsystemId, string> = {
 export const HEALTH_LABELS = { ok: 'Normal', alert: 'Alerta', offline: 'Sem resposta' } as const
 
 export const SIMULATOR = {
-  title: 'Experimente o funcionamento do PressuSense Air',
+  title: 'Experimente o funcionamento do NUVA',
   chip: 'Simulação digital · valores relativos e ilustrativos (u.a.)',
   lateralNotice: 'A animação não representa procedimento clínico validado.',
   heatmapDisclaimer:
@@ -205,7 +205,7 @@ export const SIMULATOR = {
 export const COMPARISON = {
   title: 'Comparação com a tecnologia existente',
   intro:
-    'Sistemas hospitalares de pressão alternada já existem, inclusive modelos com assistência à inclinação lateral. O PressuSense Air não afirma superioridade sobre eles: propõe investigar, na mesma categoria, uma arquitetura mais simples, modular e economicamente acessível.',
+    'Sistemas hospitalares de pressão alternada já existem, inclusive modelos com assistência à inclinação lateral. O NUVA não afirma superioridade sobre eles: propõe investigar, na mesma categoria, uma arquitetura mais simples, modular e economicamente acessível.',
   category:
     'Como referência de categoria, sistemas comerciais de pressão alternada combinam câmaras de PU com unidade de controle digital com ajuste por peso, alternância automática, lateralização automática e design célula-sobre-célula; há modelos em formato de colchão completo e de sobrecolchão.',
   referenceLabel: 'Referência tecnológica da categoria: sistemas de pressão alternada Stiegelmeyer/Novacare',
@@ -372,7 +372,7 @@ export const LIMITATIONS = [
 
 export const IMPACT = {
   title: 'Tecnologia de cuidado não deveria depender apenas do orçamento disponível.',
-  note: 'O PressuSense Air não tem eficácia clínica demonstrada. Os pontos abaixo descrevem o problema e a direção do projeto, não resultados.',
+  note: 'O NUVA não tem eficácia clínica demonstrada. Os pontos abaixo descrevem o problema e a direção do projeto, não resultados.',
 }
 
 export const IMPACT_POINTS = [
@@ -455,13 +455,13 @@ export const ECONOMY = {
   title: 'Qual o potencial econômico da tecnologia?',
   disclaimer:
     'Este é um cenário matemático exploratório, não uma comprovação de eficácia clínica, de redução de custos ou de retorno financeiro real.',
-  priceNote: 'Valores hipotéticos editáveis — não é preço do PressuSense Air, que ainda não foi fabricado nem orçado integralmente.',
+  priceNote: 'Valores hipotéticos editáveis — não é preço do NUVA, que ainda não foi fabricado nem orçado integralmente.',
 }
 
 export const DISCLAIMERS = [
-  'PressuSense Air é um conceito em desenvolvimento. Este site é uma simulação digital de engenharia e não é um dispositivo médico validado.',
+  'NUVA é um conceito em desenvolvimento. Este site é uma simulação digital de engenharia e não é um dispositivo médico validado.',
   'O conceito não tem eficácia clínica demonstrada. Todos os valores são relativos e ilustrativos (u.a.) e não representam medições de pacientes.',
   'As animações não representam procedimento clínico validado nem instruções para movimentação real de pacientes.',
   'O cenário econômico é exploratório e usa valores hipotéticos editáveis.',
-  'Nenhum patrocinador ou instituição citada é parceira oficial do PressuSense Air.',
+  'Nenhum patrocinador ou instituição citada é parceira oficial do NUVA.',
 ]

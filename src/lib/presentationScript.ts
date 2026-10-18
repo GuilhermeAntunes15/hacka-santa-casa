@@ -29,7 +29,7 @@ export const STEPS: DemoStep[] = [
     end: 30,
     talkingPoints: [
       'Pacientes com mobilidade reduzida têm risco de lesões por pressão, com sofrimento, complicações e custos assistenciais.',
-      'PressuSense Air: conceito de sobrecolchão pneumático de baixo custo, que vai sobre o colchão do leito, com câmaras de ar controladas.',
+      'NUVA: conceito de sobrecolchão pneumático de baixo custo, que vai sobre o colchão do leito, com câmaras de ar controladas.',
       'Este site é uma simulação digital de engenharia, não um dispositivo médico validado.',
     ],
     cues: [{ at: 0, run: () => scrollToId('inicio') }],

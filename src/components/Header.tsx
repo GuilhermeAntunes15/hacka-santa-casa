@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Play } from 'lucide-react'
+import Logo from './Logo'
 import { NAV_LINKS } from '../lib/content'
 import { usePresentationStore } from '../store/presentationStore'
 
@@ -22,10 +23,7 @@ export default function Header() {
     >
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-10">
         <a href="#inicio" className="flex shrink-0 items-center gap-2.5 text-[15px] font-semibold tracking-tight">
-          <img src="/favicon.svg" alt="" width={22} height={22} />
-          <span>
-            PressuSense <span className="text-accent">Air</span>
-          </span>
+          <Logo height={32} className="text-fg" />
         </a>
         <nav aria-label="Seções" className="hidden lg:block">
           <ul className="flex gap-1 text-[13px] text-muted">

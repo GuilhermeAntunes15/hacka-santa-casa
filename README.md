@@ -1,6 +1,6 @@
-# PressuSense Air — simulador digital de engenharia (HackaSanta 2026)
+# NUVA — simulador digital de engenharia (HackaSanta 2026)
 
-Aplicação web estática que representa o conceito do **PressuSense Air**, um sobrecolchão pneumático de baixo custo, instalado
+Aplicação web estática que representa o conceito do **NUVA**, um sobrecolchão pneumático de baixo custo, instalado
 sobre o colchão hospitalar existente do leito (kit sobrecolchão + controlador), com pressão alternada (grupos A/B)
 e assistência ao reposicionamento lateral.
 

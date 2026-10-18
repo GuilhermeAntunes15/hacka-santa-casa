@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import Logo from './Logo'
 import { COMPARISON, DISCLAIMERS } from '../lib/content'
 
 export default function Footer() {
@@ -7,10 +8,7 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-12">
         <div className="space-y-3 lg:col-span-4">
           <p className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
-            <img src="/favicon.svg" alt="" width={22} height={22} />
-            <span>
-              PressuSense <span className="text-accent">Air</span>
-            </span>
+            <Logo height={36} className="text-fg" />
           </p>
           <p className="label-mono">HackaSanta 2026 · MVP digital</p>
           <p className="max-w-sm text-xs leading-relaxed text-muted">

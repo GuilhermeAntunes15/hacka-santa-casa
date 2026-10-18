@@ -24,7 +24,7 @@ export default function Comparison() {
       </div>
       <div className="overflow-x-auto rounded-lg border border-line">
         <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-          <caption className="sr-only">Comparação de recursos entre a categoria comercial e o direcionamento do PressuSense Air</caption>
+          <caption className="sr-only">Comparação de recursos entre a categoria comercial e o direcionamento do NUVA</caption>
           <thead className="bg-surface/70">
             <tr className="label-mono !text-[10px]">
               <th scope="col" className="w-[22%] px-4 py-3 font-normal">
@@ -34,7 +34,7 @@ export default function Comparison() {
                 Sistemas existentes (categoria)
               </th>
               <th scope="col" className="px-4 py-3 font-normal">
-                Direcionamento PressuSense
+                Direcionamento NUVA
               </th>
               <th scope="col" className="w-[1%] px-4 py-3 font-normal whitespace-nowrap">
                 Status
